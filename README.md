@@ -3,7 +3,7 @@
 > **Plataforma de arriendo seguro para estudiantes universitarios en Chile**
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.2.4-black)](https://nextjs.org/)
-[![React](htt#### 📱 **code-room-front** \_(E#### 🔐 **code_room_api_auth**
+ 🔐 **code_room_api_auth**
 
 - **🎯 Propósito**: API de autenticación y registro general
 - **🔧 Función**: Maneja el registro de usuarios (estudiantes/propietarios)
@@ -249,7 +249,7 @@ graph TD
 
 #### 🔐 **code_room_api_auth**
 
-- **� Ubicación**: `C:\Users\ivand\OneDrive\Escritorio\code_room_api_auth`
+
 - **🎯 Propósito**: API de autenticación y registro general
 - **🔧 Función**: Maneja el registro de usuarios (estudiantes/propietarios)
 - **📡 Endpoint Principal**: Registro general de usuarios
@@ -257,7 +257,7 @@ graph TD
 
 #### 📄 **code_room_certificate-scraper-service**
 
-- **📍 Ubicación**: `C:\Users\ivand\OneDrive\Escritorio\code_room_certificate-scraper-service`
+
 - **🎯 Propósito**: Extractor inteligente de información de certificados
 - **🔧 Función**: Procesa PDFs de certificados estudiantiles y extrae información
 - **📡 Endpoint Clave**: Análisis de URLs obtenidas desde certificados PDF
@@ -265,7 +265,7 @@ graph TD
 
 #### 💾 **code_room_storage_service**
 
-- **� Ubicación**: `C:\Users\ivand\OneDrive\Escritorio\code_room_storage_service`
+
 - **🎯 Propósito**: Servicio de almacenamiento de archivos
 - **🔧 Función**: API de MinIO para gestión de archivos PDF
 - **📡 Endpoint Principal**: Almacenamiento seguro de certificados estudiantiles
@@ -295,24 +295,14 @@ graph TD
 - ✅ Conventional Commits
 - ✅ Componentes documentados
 
-## 📝 Licencia
-
-Este proyecto está bajo la licencia **MIT**. Ver `LICENSE` para más detalles.
 
 ## 👥 Equipo
 
-- **Desarrollador Principal**: Ivan D.
+- **Desarrollador Principal**: Ivan Duarte, Nicol Sanchez
 - **Arquitectura**: Microservicios distribuidos
-- **Frontend**: Next.js + TypeScript + Tailwind (v0.dev)
+- **Frontend**: Next.js + TypeScript + Tailwind 
 - **Backend**: Node.js APIs + MinIO Storage
 - **Especialización**: Extracción inteligente de certificados PDF
-
-## 📞 Contacto y Soporte
-
-- 📧 **Email**: [ivan.dev@coderoom.cl]
-- 🐛 **Issues**: [GitHub Issues por repositorio]
-- 📖 **Documentación**: [Code Room Wiki]
-- 🔧 **Microservicios**: 4 servicios independientes en desarrollo
 
 ---
 
