@@ -32,7 +32,7 @@ sequenceDiagram
 
 ### Endpoints de Integración Planificados
 
-typescript
+```typescript
 // Frontend → Auth API
 POST /api/auth/register
 POST /api/auth/login
@@ -44,6 +44,8 @@ GET /api/storage/files/:userId
 // Certificate Scraper → Auth API
 POST /api/certificates/validate
 GET /api/certificates/extract-info
+```
+
 mg.shields.io/badge/React-19-blue)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.17-38B2AC)](https://tailwindcss.com/)
@@ -66,13 +68,14 @@ mg.shields.io/badge/React-19-blue)](https://reactjs.org/)
 
 ### Frontend Core
 
-json
+```json
 {
-"framework": "Next.js 15.2.4 (App Router)",
-"runtime": "React 19",
-"language": "TypeScript 5",
-"styling": "Tailwind CSS 3.4.17"
+  "framework": "Next.js 15.2.4 (App Router)",
+  "runtime": "React 19",
+  "language": "TypeScript 5",
+  "styling": "Tailwind CSS 3.4.17"
 }
+```
 
 ### UI/UX Framework
 
