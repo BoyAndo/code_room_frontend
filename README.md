@@ -218,14 +218,13 @@ pnpm lint         # ESLint
 
 ### 🚧 Próximas Integraciones (v2)
 
-- [ ] **API de Autenticación** - Integración con `code_room_api_auth`
-- [ ] **Validación de Certificados** - Conexión con `certificate-scraper-service`
-- [ ] **Almacenamiento de Archivos** - Integración con `storage_service` (MinIO)
-- [ ] **Verificación Automática** - Pipeline completo de validación de documentos
+- [X] **API de Autenticación** - Integración con `code_room_api_auth`
+- [X] **Validación de Certificados** - Conexión con `certificate-scraper-service`
+- [X] **Almacenamiento de Archivos** - Integración con `storage_service` (MinIO)
+- [X] **Verificación Automática** - Pipeline completo de validación de documentos
 - [ ] **Chat en tiempo real** - WebSockets para comunicación
 - [ ] **Mapas interactivos** - Geolocalización de propiedades
 - [ ] **Notificaciones push** - Sistema de alertas
-- [ ] **Pagos integrados** - Pasarela de pagos
 
 ## 🌐 Ecosistema Code Room
 
@@ -273,7 +272,6 @@ graph TD
 
 #### � **code-room-front** _(Este Proyecto)_
 
-- **📍 Ubicación**: `C:\Users\ivand\OneDrive\Escritorio\code-room-front`
 - **🎯 Propósito**: Interface de usuario web
 - **🔧 Función**: Frontend React/Next.js con UI completa
 - **📡 Estado**: v1.0.0 (Estática) - Preparada para integración
