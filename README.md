@@ -3,7 +3,22 @@
 > **Plataforma de arriendo seguro para estudiantes universitarios en Chile**
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.2.4-black)](https://nextjs.org/)
-[![React](htt#### 📱 **code-room-front** _(Este Proyecto)_
+[![React](htt#### 📱 **code-room-front** _(E#### 🔐 \*\*code_room_#### 💾 **cod#### 📱 **code-room-front\*\* _(Este Proyecto)_
+
+- **🎯 Propósito**: Interface de usuario web
+- **🔧 Función**: Frontend React/Next.js con UI completa
+- **📡 Estado**: v1.0.0 (Estática) - Preparada para integración
+- **🔗 Integración**: Consumirá todos los microservicios en v2.0.0storage_service\*\*
+
+- **🎯 Propósito**: Servicio de almacenamiento de archivos
+- **🔧 Función**: API de MinIO para gestión de archivos PDF
+- **📡 Endpoint Principal**: Almacenamiento seguro de certificados estudiantiles
+- **🔗 Integración**: Guarda documentos subidos desde el frontendh\*\*
+
+- **🎯 Propósito**: API de autenticación y registro general
+- **🔧 Función**: Maneja el registro de usuarios (estudiantes/propietarios)
+- **📡 Endpoint Principal**: Registro general de usuarios
+- **🔗 Integración**: Recibe datos del frontend para crear cuentasyecto)\_
 
 - **📍 Ubicación**: `C:\Users\ivand\OneDrive\Escritorio\code-room-front`
 - **🎯 Propósito**: Interface de usuario web
@@ -254,7 +269,6 @@ graph TD
 
 #### 📄 **code_room_certificate-scraper-service**
 
-- **📍 Ubicación**: `C:\Users\ivand\OneDrive\Escritorio\code_room_certificate-scraper-service`
 - **🎯 Propósito**: Extractor inteligente de información de certificados
 - **🔧 Función**: Procesa PDFs de certificados estudiantiles y extrae información
 - **📡 Endpoint Clave**: Análisis de URLs obtenidas desde certificados PDF
