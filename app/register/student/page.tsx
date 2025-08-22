@@ -8,26 +8,76 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Home, Mail, Lock, User, FileText, Eye, EyeOff, GraduationCap, School } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { api } from "@/lib/api"
+import { useAuth } from '@/contexts/AuthContext' // Importa el hook
 
 export default function StudentRegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const router = useRouter()
+  const { login } = useAuth() // Obtén la función login del contexto
+
   const [formData, setFormData] = useState({
     studentName: "",
     studentEmail: "",
     studentRut: "",
     password: "",
     studentCollege: "",
-    studentCertificate: null as File | null,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [certificateFile, setCertificateFile] = useState<File | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Student registration:", formData)
+    setLoading(true)
+    setError("")
+
+    try {
+      if (!certificateFile) {
+        setError("Por favor, sube tu certificado de alumno regular")
+        setLoading(false)
+        return
+      }
+
+      // Crear FormData para enviar archivo
+      const formDataToSend = new FormData()
+      formDataToSend.append("studentName", formData.studentName)
+      formDataToSend.append("studentEmail", formData.studentEmail)
+      formDataToSend.append("studentRut", formData.studentRut)
+      formDataToSend.append("password", formData.password)
+      formDataToSend.append("studentCollege", formData.studentCollege)
+      formDataToSend.append("studentCertificateUrl", certificateFile)
+
+      const response = await api.post("/auth/students-register", formDataToSend, true)
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Guardar token en localStorage y en el contexto
+        if (data.token) {
+          localStorage.setItem("authToken", data.token)
+          login(data.token) // ← AQUÍ LLAMAS A LA FUNCIÓN DEL CONTEXTO
+        }
+        
+        // Redirigir al dashboard o página de éxito
+        router.push("/dashboard")
+      } else {
+        const errorData = await response.json()
+        setError(errorData.message || "Error en el registro")
+      }
+    } catch (error) {
+      console.error("Error:", error)
+      setError("Error de conexión. Intenta nuevamente.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
-    setFormData({ ...formData, studentCertificate: file })
+    setCertificateFile(file)
   }
 
   return (
@@ -54,6 +104,12 @@ export default function StudentRegisterPage() {
             <CardTitle className="text-center text-neutral-800">Información del Estudiante</CardTitle>
           </CardHeader>
           <CardContent>
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md">
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Student Name */}
               <div className="space-y-2">
@@ -160,26 +216,30 @@ export default function StudentRegisterPage() {
               {/* Student Certificate */}
               <div className="space-y-2">
                 <Label htmlFor="studentCertificate" className="text-neutral-700">
-                  Certificado de alumno regular
+                  Certificado de alumno regular (PDF)
                 </Label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500" />
                   <Input
                     id="studentCertificate"
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf"
                     onChange={handleFileChange}
                     className="pl-10 border-sage/30 focus:border-sage focus:ring-sage/20 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sage/10 file:text-sage hover:file:bg-sage/20"
                     required
                   />
                 </div>
                 <p className="text-xs text-neutral-500">
-                  Sube tu certificado de alumno regular para verificar tu condición de estudiante
+                  Sube tu certificado de alumno regular en formato PDF para verificar tu condición de estudiante
                 </p>
               </div>
 
-              <Button type="submit" className="w-full bg-sage hover:bg-sage/90 text-white py-3 text-lg font-semibold">
-                Crear Cuenta de Estudiante
+              <Button 
+                type="submit" 
+                className="w-full bg-sage hover:bg-sage/90 text-white py-3 text-lg font-semibold"
+                disabled={loading}
+              >
+                {loading ? "Registrando..." : "Crear Cuenta de Estudiante"}
               </Button>
             </form>
 

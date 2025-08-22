@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,20 +8,63 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Home, Mail, Lock, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { api } from "@/lib/api"
+import { useAuth } from '@/contexts/AuthContext' // Importa el hook
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const router = useRouter()
+  const { login } = useAuth() // Obtén la función login del contexto
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Handle login logic here
-    console.log("Login attempt:", formData)
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setLoading(true)
+  setError("")
 
+  try {
+    console.log('📤 Enviando datos de login:', { 
+      email: formData.email,
+      hasPassword: !!formData.password 
+    });
+
+    const response = await api.post("/auth/login", {
+      email: formData.email,
+      password: formData.password
+    })
+
+    console.log('📥 Respuesta recibida, status:', response.status);
+
+    if (response.ok) {
+      const data = await response.json()
+      console.log('✅ Login exitoso, token recibido');
+      
+      if (data.token) {
+        localStorage.setItem("authToken", data.token)
+        login(data.token)
+        console.log('🔐 Token guardado en localStorage y contexto');
+      }
+      
+      router.push("/profile/student")
+    } else {
+      const errorData = await response.json()
+      console.error('❌ Error del servidor:', errorData);
+      setError(errorData.message || "Error en el login")
+    }
+  } catch (error) {
+    console.error('💥 Error completo:', error);
+    setError(error.message || "Error de conexión. Verifica que el servidor esté corriendo en puerto 3001")
+  } finally {
+    setLoading(false)
+  }
+}
   return (
     <div className="min-h-screen bg-cream/20 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -44,6 +86,12 @@ export default function LoginPage() {
             <CardTitle className="text-center text-neutral-800">Bienvenido de vuelta</CardTitle>
           </CardHeader>
           <CardContent>
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md">
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-neutral-700">
@@ -98,8 +146,12 @@ export default function LoginPage() {
                 </Link>
               </div>
 
-              <Button type="submit" className="w-full bg-sage hover:bg-sage/90 text-white py-3 text-lg font-semibold">
-                Iniciar Sesión
+              <Button 
+                type="submit" 
+                className="w-full bg-sage hover:bg-sage/90 text-white py-3 text-lg font-semibold"
+                disabled={loading}
+              >
+                {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
               </Button>
             </form>
 

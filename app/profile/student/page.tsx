@@ -20,18 +20,37 @@ import {
   Heart,
   MessageCircle,
   Search,
+  GraduationCap,
+  BookOpen,
 } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from '@/contexts/AuthContext' // Importa el hook de autenticación
+import { useRouter } from "next/navigation"
 
 export default function StudentProfile() {
   const [isEditing, setIsEditing] = useState(false)
+  const { user, logout } = useAuth() // Obtén el usuario y función de logout del contexto
+  const router = useRouter()
+
+  // Usar datos reales del usuario o datos por defecto
   const [profileData, setProfileData] = useState({
-    name: "María González",
-    email: "maria.gonzalez@estudiante.uc.cl",
-    university: "Pontificia Universidad Católica de Chile",
-    career: "Ingeniería Comercial",
+    name: user?.studentName || "Nombre no disponible",
+    email: user?.studentEmail || "Email no disponible",
+    university: user?.studentCollege || "Universidad no especificada",
+    career: "Ingeniería Comercial", // Esto podría venir de tu base de datos
     documentStatus: "validated" as "pending" | "validated" | "rejected",
   })
+
+  const handleLogout = () => {
+    logout()
+    router.push("/")
+  }
+
+  const handleSave = () => {
+    setIsEditing(false)
+    // Aquí podrías agregar una llamada a la API para actualizar los datos
+    // api.post("/auth/update-profile", profileData)
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -61,9 +80,16 @@ export default function StudentProfile() {
     }
   }
 
-  const handleSave = () => {
-    setIsEditing(false)
-    // Handle save logic here
+  // Si no hay usuario, muestra un mensaje de carga o redirige
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-cream/20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sage mx-auto mb-4"></div>
+          <p className="text-neutral-600">Cargando perfil...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -103,11 +129,16 @@ export default function StudentProfile() {
                 </div>
                 <CardTitle className="text-neutral-800">{profileData.name}</CardTitle>
                 <p className="text-neutral-600">Estudiante</p>
+                <p className="text-sm text-sage font-medium">{user.studentRut}</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <Mail className="h-4 w-4 text-neutral-500" />
                   <span className="text-sm text-neutral-600">{profileData.email}</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <GraduationCap className="h-4 w-4 text-neutral-500" />
+                  <span className="text-sm text-neutral-600">{profileData.university}</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <FileText className="h-4 w-4 text-neutral-500" />
@@ -127,6 +158,7 @@ export default function StudentProfile() {
                   <Button
                     variant="outline"
                     className="w-full border-red-200 text-red-600 hover:bg-red-50 bg-transparent"
+                    onClick={handleLogout}
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Cerrar Sesión
@@ -198,6 +230,10 @@ export default function StudentProfile() {
                       <p className="text-neutral-800 font-medium">{profileData.email}</p>
                     </div>
                     <div>
+                      <Label className="text-neutral-700">RUT</Label>
+                      <p className="text-neutral-800 font-medium">{user.studentRut}</p>
+                    </div>
+                    <div>
                       <Label className="text-neutral-700">Universidad</Label>
                       <p className="text-neutral-800 font-medium">{profileData.university}</p>
                     </div>
@@ -226,6 +262,19 @@ export default function StudentProfile() {
                   </div>
                   {getStatusBadge(profileData.documentStatus)}
                 </div>
+                {user.studentCertificateUrl && (
+                  <div className="mt-4">
+                    <Label className="text-neutral-700">Certificado subido:</Label>
+                    <a 
+                      href={user.studentCertificateUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sage hover:text-sage/80 underline text-sm block mt-1"
+                    >
+                      Ver certificado
+                    </a>
+                  </div>
+                )}
                 {profileData.documentStatus === "validated" && (
                   <p className="text-sm text-neutral-600 mt-3">
                     ¡Perfecto! Tu documento ha sido verificado. Ya puedes buscar y contactar propiedades.
