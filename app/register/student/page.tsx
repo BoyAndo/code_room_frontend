@@ -62,7 +62,7 @@ export default function StudentRegisterPage() {
         }
         
         // Redirigir al dashboard o página de éxito
-        router.push("/dashboard")
+        router.push("/profile/student")
       } else {
         const errorData = await response.json()
         setError(errorData.message || "Error en el registro")
