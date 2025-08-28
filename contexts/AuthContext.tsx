@@ -2,15 +2,27 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
-interface User {
-  id: string
-  studentRut: string
-  studentEmail: string
-  studentName: string
-  studentCollege: string
-  studentCertificateUrl: string
-  role: string
+// Interfaces separadas para cada tipo de usuario
+interface Student {
+  id: string;
+  studentRut: string;
+  studentEmail: string;
+  studentName: string;
+  studentCollege: string;
+  studentCertificateUrl: string;
+  role: string;
 }
+
+interface Landlord {
+  id: string;
+  landlordRut: string;
+  landlordEmail: string;
+  landlordName: string;
+  landlordCarnetUrl: string;
+  role: string;
+}
+
+type User = Student | Landlord;
 
 interface AuthContextType {
   user: User | null
@@ -57,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('authToken')
     setToken(null)
     setUser(null)
-    // También podrías hacer una llamada al backend para logout
   }
 
   return (
@@ -72,6 +83,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   )
 }
+
+// Funciones helper para verificar el tipo de usuario
+export const isStudent = (user: User): user is Student => {
+  return (user as Student).studentRut !== undefined;
+};
+
+export const isLandlord = (user: User): user is Landlord => {
+  return (user as Landlord).landlordRut !== undefined;
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext)

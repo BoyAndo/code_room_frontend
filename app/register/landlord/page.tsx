@@ -8,25 +8,75 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Home, Mail, Lock, User, FileText, Eye, EyeOff, Building2 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { api } from "@/lib/api"
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function LandlordRegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const router = useRouter()
+  const { login } = useAuth()
+
+
   const [formData, setFormData] = useState({
     landlordName: "",
-    landlordRut: "",
     landlordEmail: "",
+    landlordRut: "",
     password: "",
-    landlordCarnet: null as File | null,
+    confirmPassword: ""
   })
+  const [carnetFile, setCarnetFile] = useState<File | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Landlord registration:", formData)
+    setLoading(true)
+    setError("")
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Las contraseñas no coinciden")
+      setLoading(false)
+      return
+    }
+    if (!carnetFile) {
+      setError("Por favor, sube una foto de tu carnet")
+      setLoading(false)
+      return
+    }
+
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append("landlordName", formData.landlordName)
+      formDataToSend.append("landlordRut", formData.landlordRut)
+      formDataToSend.append("landlordEmail", formData.landlordEmail)
+      formDataToSend.append("password", formData.password)
+      formDataToSend.append("landlordCarnet", carnetFile)
+
+      const response = await api.post("/auth/landlords-register", formDataToSend, true)
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.data.token) {
+          localStorage.setItem("authToken", data.data.token)
+          login(data.data.token)
+          router.push("/profile/landlord")
+        }
+      } else {
+        const errorData = await response.json()
+        setError(errorData.message || "Error en el registro")
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setError("Error de conexión. Intenta nuevamente.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
-    setFormData({ ...formData, landlordCarnet: file })
+    setCarnetFile(file)
   }
 
   return (
@@ -53,8 +103,15 @@ export default function LandlordRegisterPage() {
             <CardTitle className="text-center text-neutral-800">Información del Arrendador</CardTitle>
           </CardHeader>
           <CardContent>
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md">
+                {error}
+              </div>
+            )}
+
+
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Landlord Name */}
+              {/* Nombre completo */}
               <div className="space-y-2">
                 <Label htmlFor="landlordName" className="text-neutral-700">
                   Nombre completo
@@ -73,7 +130,7 @@ export default function LandlordRegisterPage() {
                 </div>
               </div>
 
-              {/* Landlord RUT */}
+              {/* RUT */}
               <div className="space-y-2">
                 <Label htmlFor="landlordRut" className="text-neutral-700">
                   RUT
@@ -92,7 +149,7 @@ export default function LandlordRegisterPage() {
                 </div>
               </div>
 
-              {/* Landlord Email */}
+              {/* Correo electrónico */}
               <div className="space-y-2">
                 <Label htmlFor="landlordEmail" className="text-neutral-700">
                   Correo electrónico
@@ -111,7 +168,7 @@ export default function LandlordRegisterPage() {
                 </div>
               </div>
 
-              {/* Password */}
+              {/* Contraseña */}
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-neutral-700">
                   Contraseña
@@ -137,29 +194,52 @@ export default function LandlordRegisterPage() {
                 </div>
               </div>
 
-              {/* Landlord Carnet */}
+              {/* Confirmar contraseña */}
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-neutral-700">
+                  Confirmar contraseña
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500" />
+                  <Input
+                    id="confirmPassword"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Repite tu contraseña"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    className="pl-10 pr-10 border-sage/30 focus:border-sage focus:ring-sage/20"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Carnet de identidad */}
               <div className="space-y-2">
                 <Label htmlFor="landlordCarnet" className="text-neutral-700">
-                  Carnet de identidad
+                  Foto de carnet de identidad (JPG, PNG)
                 </Label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500" />
                   <Input
                     id="landlordCarnet"
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept="image/*"
                     onChange={handleFileChange}
                     className="pl-10 border-sage/30 focus:border-sage focus:ring-sage/20 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sage/10 file:text-sage hover:file:bg-sage/20"
                     required
                   />
                 </div>
                 <p className="text-xs text-neutral-500">
-                  Sube una foto de tu carnet de identidad para verificar tu identidad
+                  Sube una foto clara de tu carnet de identidad (JPG, PNG)
                 </p>
               </div>
 
-              <Button type="submit" className="w-full bg-sage hover:bg-sage/90 text-white py-3 text-lg font-semibold">
-                Crear Cuenta de Arrendador
+              <Button 
+                type="submit" 
+                className="w-full bg-sage hover:bg-sage/90 text-white py-3 text-lg font-semibold"
+                disabled={loading}
+              >
+                {loading ? "Registrando..." : "Crear Cuenta de Arrendador"}
               </Button>
             </form>
 
@@ -174,7 +254,6 @@ export default function LandlordRegisterPage() {
           </CardContent>
         </Card>
 
-        {/* Additional Options */}
         <div className="mt-6 text-center">
           <Link href="/register" className="text-neutral-600 hover:text-sage text-sm">
             ← Volver a selección de tipo

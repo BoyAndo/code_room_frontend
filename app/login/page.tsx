@@ -24,43 +24,41 @@ export default function LoginPage() {
     password: "",
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // En app/login/page.tsx
+const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault()
   setLoading(true)
   setError("")
 
   try {
-    console.log('📤 Enviando datos de login:', { 
-      email: formData.email,
-      hasPassword: !!formData.password 
-    });
-
     const response = await api.post("/auth/login", {
       email: formData.email,
       password: formData.password
     })
 
-    console.log('📥 Respuesta recibida, status:', response.status);
-
     if (response.ok) {
       const data = await response.json()
-      console.log('✅ Login exitoso, token recibido');
       
       if (data.token) {
         localStorage.setItem("authToken", data.token)
         login(data.token)
-        console.log('🔐 Token guardado en localStorage y contexto');
+        
+        // Redirigir según el tipo de usuario
+        if (data.userType === 'student') {
+          router.push("/profile/student")
+        } else if (data.userType === 'landlord') {
+          router.push("/profile/landlord")
+        } else {
+          router.push("/") // Redirección por defecto
+        }
       }
-      
-      router.push("/profile/student")
     } else {
       const errorData = await response.json()
-      console.error('❌ Error del servidor:', errorData);
       setError(errorData.message || "Error en el login")
     }
   } catch (error) {
-    console.error('💥 Error completo:', error);
-    setError(error.message || "Error de conexión. Verifica que el servidor esté corriendo en puerto 3001")
+    console.error('Error:', error);
+    setError("Error de conexión. Verifica que el servidor esté corriendo")
   } finally {
     setLoading(false)
   }
