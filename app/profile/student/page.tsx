@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -24,7 +24,7 @@ import {
   BookOpen,
 } from "lucide-react"
 import Link from "next/link"
-import { useAuth } from '@/contexts/AuthContext' // Importa el hook de autenticación
+import { useAuth, isStudent, isLandlord } from '@/contexts/AuthContext' // Importa el hook de autenticación y type guards
 import { useRouter } from "next/navigation"
 
 export default function StudentProfile() {
@@ -34,9 +34,9 @@ export default function StudentProfile() {
 
   // Usar datos reales del usuario o datos por defecto
   const [profileData, setProfileData] = useState({
-    name: user?.studentName || "Nombre no disponible",
-    email: user?.studentEmail || "Email no disponible",
-    university: user?.studentCollege || "Universidad no especificada",
+    name: isStudent(user) ? user.studentName : "Nombre no disponible",
+    email: isStudent(user) ? user.studentEmail : "Email no disponible",
+    university: isStudent(user) ? user.studentCollege : "Universidad no especificada",
     career: "Ingeniería Comercial", // Esto podría venir de tu base de datos
     documentStatus: "validated" as "pending" | "validated" | "rejected",
   })
@@ -129,7 +129,7 @@ export default function StudentProfile() {
                 </div>
                 <CardTitle className="text-neutral-800">{profileData.name}</CardTitle>
                 <p className="text-neutral-600">Estudiante</p>
-                <p className="text-sm text-sage font-medium">{user.studentRut}</p>
+                <p className="text-sm text-sage font-medium">{isStudent(user) ? user.studentRut : ""}</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3">
@@ -231,7 +231,7 @@ export default function StudentProfile() {
                     </div>
                     <div>
                       <Label className="text-neutral-700">RUT</Label>
-                      <p className="text-neutral-800 font-medium">{user.studentRut}</p>
+                      <p className="text-neutral-800 font-medium">{isStudent(user) ? user.studentRut : ""}</p>
                     </div>
                     <div>
                       <Label className="text-neutral-700">Universidad</Label>
@@ -262,7 +262,7 @@ export default function StudentProfile() {
                   </div>
                   {getStatusBadge(profileData.documentStatus)}
                 </div>
-                {user.studentCertificateUrl && (
+                {isStudent(user) && user.studentCertificateUrl && (
                   <div className="mt-4">
                     <Label className="text-neutral-700">Certificado subido:</Label>
                     <a 

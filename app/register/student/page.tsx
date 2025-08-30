@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,7 +16,21 @@ export default function StudentRegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const { login } = useAuth() // Obtén la función login del contexto
+  const { login, user } = useAuth()
+  const [redirectAfterLogin, setRedirectAfterLogin] = useState(false)
+
+    // Redirige automáticamente cuando el usuario se actualiza tras login
+  useEffect(() => {
+      if (redirectAfterLogin && user) {
+        if (user.role === 'student') {
+          router.push("/profile/student")
+        } else if (user.role === 'landlord') {
+          router.push("/profile/landlord")
+        } else {
+          router.push("/")
+        }
+      }
+    }, [redirectAfterLogin, user, router])
 
   const [formData, setFormData] = useState({
     studentName: "",
@@ -41,6 +54,9 @@ export default function StudentRegisterPage() {
         return
       }
 
+  // Obtener CSRF token desde el helper API
+  const csrfToken = await api.getCsrfToken();
+
       // Crear FormData para enviar archivo
       const formDataToSend = new FormData()
       formDataToSend.append("studentName", formData.studentName)
@@ -50,19 +66,23 @@ export default function StudentRegisterPage() {
       formDataToSend.append("studentCollege", formData.studentCollege)
       formDataToSend.append("studentCertificateUrl", certificateFile)
 
-      const response = await api.post("/auth/students-register", formDataToSend, true)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/students-register`, {
+        method: "POST",
+        body: formDataToSend,
+        credentials: "include",
+        headers: { "X-CSRF-Token": csrfToken }
+      });
 
       if (response.ok) {
         const data = await response.json()
-        
-        // Guardar token en localStorage y en el contexto
-        if (data.token) {
-          localStorage.setItem("authToken", data.token)
-          login(data.token) // ← AQUÍ LLAMAS A LA FUNCIÓN DEL CONTEXTO
-        }
-        
-        // Redirigir al dashboard o página de éxito
-        router.push("/profile/student")
+        await login();
+        // Redirige según el usuario actualizado en el contexto
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            // Forzar actualización del contexto
+            window.location.href = '/profile/student';
+          }
+        }, 300);
       } else {
         const errorData = await response.json()
         setError(errorData.message || "Error en el registro")
