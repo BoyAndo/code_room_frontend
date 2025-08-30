@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // Interfaces separadas para cada tipo de usuario
 interface Student {
@@ -27,8 +28,8 @@ type User = Student | Landlord;
 interface AuthContextType {
   user: User | null
   token: string | null
-  login: (token: string) => void
-  logout: () => void
+  login: () => void | Promise<void>
+  logout: () => void | Promise<void>
   isAuthenticated: boolean
 }
 
@@ -39,45 +40,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
-    // Verificar si hay token en localStorage al cargar la app
-    const storedToken = localStorage.getItem('authToken')
-    if (storedToken) {
-      setToken(storedToken)
-      // Decodificar el token para obtener información del usuario
+    // Al cargar la app, obtener el usuario autenticado desde el backend
+    const fetchUser = async () => {
       try {
-        const payload = JSON.parse(atob(storedToken.split('.')[1]))
-        setUser(payload)
+        const res = await fetch(`${API_BASE_URL}/auth/me`, {
+          credentials: "include"
+        })
+        const data = await res.json()
+        if (data.success && data.user) {
+          setUser(data.user)
+        } else {
+          setUser(null)
+        }
       } catch (error) {
-        console.error('Error decoding token:', error)
-        logout()
+        setUser(null)
       }
     }
+    fetchUser()
   }, [])
 
-  const login = (newToken: string) => {
-    localStorage.setItem('authToken', newToken)
-    setToken(newToken)
+  // Nuevo login: solo actualiza el usuario desde el backend tras login exitoso
+  const login = async () => {
+    // Espera a que el backend setee la cookie y luego obtiene el usuario
+    await new Promise(resolve => setTimeout(resolve, 300)) // pequeño delay opcional
     try {
-      const payload = JSON.parse(atob(newToken.split('.')[1]))
-      setUser(payload)
+      const res = await fetch(`${API_BASE_URL}/auth/me`, {
+        credentials: "include"
+      })
+      const data = await res.json()
+      if (data.success && data.user) {
+        setUser(data.user)
+      } else {
+        setUser(null)
+      }
     } catch (error) {
-      console.error('Error decoding token:', error)
+      setUser(null)
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem('authToken')
-    setToken(null)
+  const logout = async () => {
+    // Puedes agregar un endpoint /auth/logout en el backend para borrar la cookie
+    await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST", credentials: "include" })
     setUser(null)
   }
 
   return (
     <AuthContext.Provider value={{
-      user,
-      token,
-      login,
-      logout,
-      isAuthenticated: !!token
+  user,
+  token: null,
+  login,
+  logout,
+  isAuthenticated: !!user
     }}>
       {children}
     </AuthContext.Provider>
@@ -85,12 +98,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 }
 
 // Funciones helper para verificar el tipo de usuario
-export const isStudent = (user: User): user is Student => {
-  return (user as Student).studentRut !== undefined;
+export const isStudent = (user: User | null | undefined): user is Student => {
+  return !!user && (user as Student).studentRut !== undefined;
 };
 
-export const isLandlord = (user: User): user is Landlord => {
-  return (user as Landlord).landlordRut !== undefined;
+export const isLandlord = (user: User | null | undefined): user is Landlord => {
+  return !!user && (user as Landlord).landlordRut !== undefined;
 };
 
 export const useAuth = () => {

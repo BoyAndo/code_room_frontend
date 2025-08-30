@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const { login } = useAuth() // Obtén la función login del contexto
+  const { login, user } = useAuth() // Obtén la función login y el usuario del contexto
 
   const [formData, setFormData] = useState({
     email: "",
@@ -25,44 +25,47 @@ export default function LoginPage() {
   })
 
   // En app/login/page.tsx
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setLoading(true)
-  setError("")
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
 
-  try {
-    const response = await api.post("/auth/login", {
-      email: formData.email,
-      password: formData.password
-    })
+    try {
+      // Obtener CSRF token desde el helper API
+      const csrfToken = await api.getCsrfToken();
 
-    if (response.ok) {
-      const data = await response.json()
-      
-      if (data.token) {
-        localStorage.setItem("authToken", data.token)
-        login(data.token)
-        
-        // Redirigir según el tipo de usuario
-        if (data.userType === 'student') {
-          router.push("/profile/student")
-        } else if (data.userType === 'landlord') {
-          router.push("/profile/landlord")
-        } else {
-          router.push("/") // Redirección por defecto
-        }
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/login`, {
+        method: "POST",
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+        credentials: "include"
+      })
+
+      if (response.ok) {
+        await login();
+        // La redirección se maneja en el useEffect de abajo
+      } else {
+        const errorData = await response.json()
+        setError(errorData.message || "Error en el login")
       }
-    } else {
-      const errorData = await response.json()
-      setError(errorData.message || "Error en el login")
+    } catch (error) {
+      console.error('Error:', error);
+      setError("Error de conexión. Verifica que el servidor esté corriendo")
+    } finally {
+      setLoading(false)
     }
-  } catch (error) {
-    console.error('Error:', error);
-    setError("Error de conexión. Verifica que el servidor esté corriendo")
-  } finally {
-    setLoading(false)
   }
-}
+
+  // Redirige automáticamente cuando el usuario se actualiza tras login
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'student') {
+        router.push('/profile/student');
+      } else if (user.role === 'landlord') {
+        router.push('/profile/landlord');
+      }
+    }
+  }, [user, router]);
   return (
     <div className="min-h-screen bg-cream/20 flex items-center justify-center p-4">
       <div className="w-full max-w-md">

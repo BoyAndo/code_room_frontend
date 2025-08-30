@@ -1,6 +1,13 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export const api = {
+  async getCsrfToken() {
+    // Obtiene el token CSRF desde el backend usando la URL base
+    const response = await api.get("/auth/csrf-token");
+    if (!response.ok) throw new Error("No se pudo obtener el token CSRF");
+    const data = await response.json();
+    return data.csrfToken;
+  },
   async post(endpoint: string, data: any, isFormData: boolean = false) {
     const url = `${API_BASE_URL}${endpoint}`;
     

@@ -46,6 +46,9 @@ export default function LandlordRegisterPage() {
     }
 
     try {
+  // Obtener CSRF token desde el helper API
+  const csrfToken = await api.getCsrfToken();
+
       const formDataToSend = new FormData()
       formDataToSend.append("landlordName", formData.landlordName)
       formDataToSend.append("landlordRut", formData.landlordRut)
@@ -53,15 +56,21 @@ export default function LandlordRegisterPage() {
       formDataToSend.append("password", formData.password)
       formDataToSend.append("landlordCarnet", carnetFile)
 
-      const response = await api.post("/auth/landlords-register", formDataToSend, true)
-
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/landlords-register`, {
+        method: "POST",
+        body: formDataToSend,
+        credentials: "include",
+        headers: { "X-CSRF-Token": csrfToken }
+      });
       if (response.ok) {
-        const data = await response.json()
-        if (data.data.token) {
-          localStorage.setItem("authToken", data.data.token)
-          login(data.data.token)
-          router.push("/profile/landlord")
-        }
+        const data = await response.json();
+        await login();
+        // Redirige según el usuario actualizado en el contexto
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            window.location.href = '/profile/landlord';
+          }
+        }, 300);
       } else {
         const errorData = await response.json()
         setError(errorData.message || "Error en el registro")

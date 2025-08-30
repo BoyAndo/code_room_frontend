@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -19,7 +19,7 @@ import {
   Plus,
 } from "lucide-react"
 import Link from "next/link"
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth, isStudent, isLandlord } from '@/contexts/AuthContext'
 import { useRouter } from "next/navigation"
 
 export default function LandlordProfile() {
@@ -28,14 +28,14 @@ export default function LandlordProfile() {
   const router = useRouter()
 
   const [profileData, setProfileData] = useState({
-    name: user?.landlordName || "Nombre no disponible",
-    email: user?.landlordEmail || "Email no disponible",
+    name: isLandlord(user) ? user.landlordName : "Nombre no disponible",
+    email: isLandlord(user) ? user.landlordEmail : "Email no disponible",
     phone: "+56 9 8765 4321", // Esto podría venir de la base de datos
     documentStatus: "validated" as "pending" | "validated" | "rejected",
   })
 
   useEffect(() => {
-    if (user) {
+    if (isLandlord(user)) {
       setProfileData({
         name: user.landlordName || "Nombre no disponible",
         email: user.landlordEmail || "Email no disponible",
@@ -121,7 +121,7 @@ export default function LandlordProfile() {
                 </div>
                 <CardTitle className="text-neutral-800">{profileData.name}</CardTitle>
                 <p className="text-neutral-600">Arrendador</p>
-                <p className="text-sm text-sage font-medium">{user.landlordRut}</p>
+                <p className="text-sm text-sage font-medium">{isLandlord(user) ? user.landlordRut : ""}</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3">
@@ -210,7 +210,7 @@ export default function LandlordProfile() {
                     </div>
                     <div>
                       <Label className="text-neutral-700">RUT</Label>
-                      <p className="text-neutral-800 font-medium">{user.landlordRut}</p>
+                      <p className="text-neutral-800 font-medium">{isLandlord(user) ? user.landlordRut : ""}</p>
                     </div>
                     <div>
                       <Label className="text-neutral-700">Teléfono</Label>
@@ -241,7 +241,7 @@ export default function LandlordProfile() {
                   </div>
                   {getStatusBadge(profileData.documentStatus)}
                 </div>
-                {user.landlordCarnetUrl && (
+                {isLandlord(user) && user.landlordCarnetUrl && (
                   <div className="mt-4">
                     <Label className="text-neutral-700">Carnet subido:</Label>
                     <a 
