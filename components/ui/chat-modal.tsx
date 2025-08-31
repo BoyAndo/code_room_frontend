@@ -1,32 +1,37 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Send, CheckCircle2, AlertCircle } from "lucide-react"
-import Image from "next/image"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Send, CheckCircle2, AlertCircle } from "lucide-react";
+import Image from "next/image";
 
 interface ChatModalProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
   property: {
-    id: number
-    title: string
-    city: string
-    price: number
+    id: number;
+    title: string;
+    city: string;
+    price: number;
     author: {
-      name: string
-      verified: boolean
-      avatar: string
-      responseTime: string
-    }
-  } | null
+      name: string;
+      verified: boolean;
+      avatar: string;
+      responseTime: string;
+    };
+  } | null;
 }
 
 export function ChatModal({ isOpen, onClose, property }: ChatModalProps) {
-  const [chatMessage, setChatMessage] = useState("")
-  const [chatMessages, setChatMessages] = useState<any[]>([])
+  const [chatMessage, setChatMessage] = useState("");
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
 
   const handleSendMessage = () => {
     if (chatMessage.trim() && property) {
@@ -35,9 +40,9 @@ export function ChatModal({ isOpen, onClose, property }: ChatModalProps) {
         text: chatMessage,
         sender: "user",
         timestamp: new Date().toLocaleTimeString(),
-      }
-      setChatMessages([...chatMessages, newMessage])
-      setChatMessage("")
+      };
+      setChatMessages([...chatMessages, newMessage]);
+      setChatMessage("");
 
       // Simular respuesta automática del propietario
       setTimeout(() => {
@@ -46,13 +51,13 @@ export function ChatModal({ isOpen, onClose, property }: ChatModalProps) {
           text: "¡Hola! Gracias por tu interés en la propiedad. ¿Te gustaría agendar una visita?",
           sender: "owner",
           timestamp: new Date().toLocaleTimeString(),
-        }
-        setChatMessages((prev) => [...prev, autoReply])
-      }, 2000)
+        };
+        setChatMessages((prev) => [...prev, autoReply]);
+      }, 2000);
     }
-  }
+  };
 
-  if (!property) return null
+  if (!property) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -70,13 +75,15 @@ export function ChatModal({ isOpen, onClose, property }: ChatModalProps) {
               <div className="flex items-center space-x-1">
                 <span>{property.author.name}</span>
                 {property.author.verified ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 text-blue-500" />
                 ) : (
                   <AlertCircle className="h-4 w-4 text-yellow-500" />
                 )}
               </div>
               <span className="text-sm text-neutral-500 font-normal">
-                {property.author.verified ? "Propietario verificado" : "Propietario no verificado"}
+                {property.author.verified
+                  ? "Propietario verificado"
+                  : "Propietario no verificado"}
               </span>
             </div>
           </DialogTitle>
@@ -99,14 +106,23 @@ export function ChatModal({ isOpen, onClose, property }: ChatModalProps) {
               </div>
             ) : (
               chatMessages.map((message) => (
-                <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    message.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
                   <div
                     className={`max-w-[80%] p-2 rounded-lg text-sm ${
-                      message.sender === "user" ? "bg-sage text-white" : "bg-white border border-sage/20"
+                      message.sender === "user"
+                        ? "bg-sage text-white"
+                        : "bg-white border border-sage/20"
                     }`}
                   >
                     <p>{message.text}</p>
-                    <span className="text-xs opacity-70">{message.timestamp}</span>
+                    <span className="text-xs opacity-70">
+                      {message.timestamp}
+                    </span>
                   </div>
                 </div>
               ))
@@ -122,23 +138,25 @@ export function ChatModal({ isOpen, onClose, property }: ChatModalProps) {
               className="flex-1 min-h-[40px] max-h-[80px] border-sage/30 focus:border-sage focus:ring-sage/20"
               onKeyPress={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSendMessage()
+                  e.preventDefault();
+                  handleSendMessage();
                 }
               }}
             />
             <Button
               onClick={handleSendMessage}
               disabled={!chatMessage.trim()}
-              className="bg-sage hover:bg-sage/90 text-white"
+              className="bg-golden hover:bg-education text-white"
             >
               <Send className="h-4 w-4" />
             </Button>
           </div>
 
-          <div className="text-xs text-neutral-500 text-center">{property.author.responseTime}</div>
+          <div className="text-xs text-neutral-500 text-center">
+            {property.author.responseTime}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

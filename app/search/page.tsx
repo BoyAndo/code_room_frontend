@@ -193,7 +193,7 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cream/20">
+    <div className="min-h-screen code-room-subtle-pattern">
       {/* Header */}
       <header className="bg-white border-b border-sage/20 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
@@ -278,13 +278,13 @@ export default function SearchPage() {
               </div>
 
               <div className="flex gap-4">
-                <Button className="bg-sage hover:bg-sage/90 text-white flex-1">
+                <Button className="bg-golden hover:bg-education text-white flex-1 font-semibold">
                   <Search className="h-4 w-4 mr-2" />
                   Buscar
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-sage/30 text-sage hover:bg-sage/10 bg-transparent"
+                  className="border-sage/30 text-sage hover:bg-warm bg-white"
                 >
                   <Filter className="h-4 w-4 mr-2" />
                   Filtros
@@ -398,7 +398,7 @@ export default function SearchPage() {
                       </span>
                       <span>📐 {property.squareMeters}m²</span>
                     </div>
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                       {property.propertyType.toLowerCase() === "house"
                         ? "Casa"
                         : property.propertyType.toLowerCase() === "apartment"
@@ -430,7 +430,7 @@ export default function SearchPage() {
                     )}
                   </div>
 
-                  <Button className="w-full bg-sage hover:bg-sage/90 text-white mb-3">
+                  <Button className="w-full bg-golden hover:bg-education text-white mb-3 font-semibold">
                     Ver más detalles
                   </Button>
 
@@ -449,7 +449,7 @@ export default function SearchPage() {
                           <span className="text-sm font-medium text-neutral-800">
                             {property.landlord.landlordName}
                           </span>
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          <CheckCircle2 className="h-4 w-4 text-blue-500" />
                         </div>
                         <span className="text-xs text-neutral-500">
                           Responde en ~2 horas
@@ -461,7 +461,7 @@ export default function SearchPage() {
                       <DialogTrigger asChild>
                         <Button
                           size="sm"
-                          className="bg-sage hover:bg-sage/90 text-white"
+                          className="bg-golden hover:bg-education text-white font-semibold"
                           onClick={() => {
                             setSelectedProperty(property);
                             setChatMessages([]);
@@ -484,7 +484,7 @@ export default function SearchPage() {
                             <div>
                               <div className="flex items-center space-x-1">
                                 <span>{property.landlord.landlordName}</span>
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                <CheckCircle2 className="h-4 w-4 text-blue-500" />
                               </div>
                               <span className="text-sm text-neutral-500 font-normal">
                                 Propietario verificado
@@ -570,7 +570,7 @@ export default function SearchPage() {
                             <Button
                               onClick={handleSendMessage}
                               disabled={!chatMessage.trim()}
-                              className="bg-sage hover:bg-sage/90 text-white"
+                              className="bg-golden hover:bg-education text-white"
                             >
                               <Send className="h-4 w-4" />
                             </Button>
@@ -593,7 +593,7 @@ export default function SearchPage() {
         <div className="text-center mt-8">
           <Button
             variant="outline"
-            className="border-sage/30 text-sage hover:bg-sage/10 bg-transparent"
+            className="border-sage/30 text-sage hover:bg-warm bg-white"
           >
             Cargar más propiedades
           </Button>

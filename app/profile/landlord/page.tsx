@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   User,
   Mail,
@@ -17,22 +17,22 @@ import {
   XCircle,
   Clock,
   Plus,
-} from "lucide-react"
-import Link from "next/link"
-import { useAuth, isStudent, isLandlord } from '@/contexts/AuthContext'
-import { useRouter } from "next/navigation"
+} from "lucide-react";
+import Link from "next/link";
+import { useAuth, isStudent, isLandlord } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function LandlordProfile() {
-  const [isEditing, setIsEditing] = useState(false)
-  const { user, logout } = useAuth()
-  const router = useRouter()
+  const [isEditing, setIsEditing] = useState(false);
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   const [profileData, setProfileData] = useState({
     name: isLandlord(user) ? user.landlordName : "Nombre no disponible",
     email: isLandlord(user) ? user.landlordEmail : "Email no disponible",
     phone: "+56 9 8765 4321", // Esto podría venir de la base de datos
     documentStatus: "validated" as "pending" | "validated" | "rejected",
-  })
+  });
 
   useEffect(() => {
     if (isLandlord(user)) {
@@ -40,48 +40,48 @@ export default function LandlordProfile() {
         name: user.landlordName || "Nombre no disponible",
         email: user.landlordEmail || "Email no disponible",
         phone: "+56 9 8765 4321",
-        documentStatus: "validated"
-      })
+        documentStatus: "validated",
+      });
     }
-  }, [user])
+  }, [user]);
 
   const handleLogout = () => {
-    logout()
-    router.push("/")
-  }
+    logout();
+    router.push("/");
+  };
 
   const handleSave = () => {
-    setIsEditing(false)
+    setIsEditing(false);
     // Aquí podrías agregar una llamada a la API para actualizar los datos
-  }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "validated":
         return (
-          <Badge className="bg-green-100 text-green-800 border-green-200">
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200">
             <CheckCircle className="h-3 w-3 mr-1" />
             Validado
           </Badge>
-        )
+        );
       case "pending":
         return (
           <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
             <Clock className="h-3 w-3 mr-1" />
             Pendiente
           </Badge>
-        )
+        );
       case "rejected":
         return (
           <Badge className="bg-red-100 text-red-800 border-red-200">
             <XCircle className="h-3 w-3 mr-1" />
             Rechazado
           </Badge>
-        )
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   if (!user) {
     return (
@@ -91,7 +91,7 @@ export default function LandlordProfile() {
           <p className="text-neutral-600">Cargando perfil...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -104,7 +104,9 @@ export default function LandlordProfile() {
               <div className="w-10 h-10 bg-gradient-to-br from-sage to-sage/70 rounded-xl flex items-center justify-center">
                 <Home className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-neutral-800">Code Room</span>
+              <span className="text-xl font-bold text-neutral-800">
+                Code Room
+              </span>
             </Link>
           </div>
         </div>
@@ -119,19 +121,27 @@ export default function LandlordProfile() {
                 <div className="w-24 h-24 bg-gradient-to-br from-sage to-sage/70 rounded-full flex items-center justify-center mx-auto mb-4">
                   <User className="h-12 w-12 text-white" />
                 </div>
-                <CardTitle className="text-neutral-800">{profileData.name}</CardTitle>
+                <CardTitle className="text-neutral-800">
+                  {profileData.name}
+                </CardTitle>
                 <p className="text-neutral-600">Arrendador</p>
-                <p className="text-sm text-sage font-medium">{isLandlord(user) ? user.landlordRut : ""}</p>
+                <p className="text-sm text-sage font-medium">
+                  {isLandlord(user) ? user.landlordRut : ""}
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <Mail className="h-4 w-4 text-neutral-500" />
-                  <span className="text-sm text-neutral-600">{profileData.email}</span>
+                  <span className="text-sm text-neutral-600">
+                    {profileData.email}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <FileText className="h-4 w-4 text-neutral-500" />
                   <div className="flex-1">
-                    <p className="text-sm text-neutral-600">Estado del documento:</p>
+                    <p className="text-sm text-neutral-600">
+                      Estado del documento:
+                    </p>
                     {getStatusBadge(profileData.documentStatus)}
                   </div>
                 </div>
@@ -161,7 +171,9 @@ export default function LandlordProfile() {
             {/* Profile Information */}
             <Card className="bg-white backdrop-blur-sm border-sage/20 shadow-lg">
               <CardHeader>
-                <CardTitle className="text-neutral-800">Información Personal</CardTitle>
+                <CardTitle className="text-neutral-800">
+                  Información Personal
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {isEditing ? (
@@ -171,7 +183,12 @@ export default function LandlordProfile() {
                       <Input
                         id="name"
                         value={profileData.name}
-                        onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                        onChange={(e) =>
+                          setProfileData({
+                            ...profileData,
+                            name: e.target.value,
+                          })
+                        }
                         className="border-sage/30 focus:border-sage focus:ring-sage/20"
                       />
                     </div>
@@ -181,7 +198,12 @@ export default function LandlordProfile() {
                         id="email"
                         type="email"
                         value={profileData.email}
-                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                        onChange={(e) =>
+                          setProfileData({
+                            ...profileData,
+                            email: e.target.value,
+                          })
+                        }
                         className="border-sage/30 focus:border-sage focus:ring-sage/20"
                       />
                     </div>
@@ -190,34 +212,56 @@ export default function LandlordProfile() {
                       <Input
                         id="phone"
                         value={profileData.phone}
-                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                        onChange={(e) =>
+                          setProfileData({
+                            ...profileData,
+                            phone: e.target.value,
+                          })
+                        }
                         className="border-sage/30 focus:border-sage focus:ring-sage/20"
                       />
                     </div>
-                    <Button onClick={handleSave} className="bg-sage hover:bg-sage/90 text-white">
+                    <Button
+                      onClick={handleSave}
+                      className="bg-sage hover:bg-sage/90 text-white"
+                    >
                       Guardar Cambios
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <div>
-                      <Label className="text-neutral-700">Nombre completo</Label>
-                      <p className="text-neutral-800 font-medium">{profileData.name}</p>
+                      <Label className="text-neutral-700">
+                        Nombre completo
+                      </Label>
+                      <p className="text-neutral-800 font-medium">
+                        {profileData.name}
+                      </p>
                     </div>
                     <div>
-                      <Label className="text-neutral-700">Correo electrónico</Label>
-                      <p className="text-neutral-800 font-medium">{profileData.email}</p>
+                      <Label className="text-neutral-700">
+                        Correo electrónico
+                      </Label>
+                      <p className="text-neutral-800 font-medium">
+                        {profileData.email}
+                      </p>
                     </div>
                     <div>
                       <Label className="text-neutral-700">RUT</Label>
-                      <p className="text-neutral-800 font-medium">{isLandlord(user) ? user.landlordRut : ""}</p>
+                      <p className="text-neutral-800 font-medium">
+                        {isLandlord(user) ? user.landlordRut : ""}
+                      </p>
                     </div>
                     <div>
                       <Label className="text-neutral-700">Teléfono</Label>
-                      <p className="text-neutral-800 font-medium">{profileData.phone}</p>
+                      <p className="text-neutral-800 font-medium">
+                        {profileData.phone}
+                      </p>
                     </div>
                     <div>
-                      <Label className="text-neutral-700">Estado de verificación</Label>
+                      <Label className="text-neutral-700">
+                        Estado de verificación
+                      </Label>
                       {getStatusBadge(profileData.documentStatus)}
                     </div>
                   </div>
@@ -228,15 +272,21 @@ export default function LandlordProfile() {
             {/* Document Status */}
             <Card className="bg-white backdrop-blur-sm border-sage/20 shadow-lg">
               <CardHeader>
-                <CardTitle className="text-neutral-800">Estado de Verificación</CardTitle>
+                <CardTitle className="text-neutral-800">
+                  Estado de Verificación
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-6 w-6 text-green-600" />
+                    <CheckCircle className="h-6 w-6 text-blue-600" />
                     <div>
-                      <p className="font-medium text-green-800">Carnet de Identidad</p>
-                      <p className="text-sm text-green-600">Documento verificado correctamente</p>
+                      <p className="font-medium text-blue-800">
+                        Carnet de Identidad
+                      </p>
+                      <p className="text-sm text-blue-600">
+                        Documento verificado correctamente
+                      </p>
                     </div>
                   </div>
                   {getStatusBadge(profileData.documentStatus)}
@@ -244,9 +294,9 @@ export default function LandlordProfile() {
                 {isLandlord(user) && user.landlordCarnetUrl && (
                   <div className="mt-4">
                     <Label className="text-neutral-700">Carnet subido:</Label>
-                    <a 
-                      href={user.landlordCarnetUrl} 
-                      target="_blank" 
+                    <a
+                      href={user.landlordCarnetUrl}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-sage hover:text-sage/80 underline text-sm block mt-1"
                     >
@@ -260,5 +310,5 @@ export default function LandlordProfile() {
         </div>
       </div>
     </div>
-  )
+  );
 }

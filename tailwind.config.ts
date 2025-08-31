@@ -1,4 +1,4 @@
-import type { Config } from "tailwindcss"
+import type { Config } from "tailwindcss";
 
 // all in fixtures is set to tailwind v3 as interims solutions
 
@@ -46,9 +46,14 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Updated custom colors
-        cream: "#cdc1a5",
-        sage: "#a1c1b0",
+        // Elegant real estate colors inspired by Lioner design
+        cream: "#f8f5f1", // Light beige background
+        sage: "#8b6f47", // Warm brown for primary elements
+        education: "#d4af37", // Golden yellow for accents
+        modern: "#6b5b73", // Muted purple-brown for secondary
+        professional: "#a0846d", // Medium brown for borders
+        warm: "#f4ede4", // Very light warm beige
+        golden: "#f1c40f", // Bright golden yellow for buttons
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",
@@ -97,5 +102,5 @@ const config: Config = {
     },
   },
   plugins: [require("tailwindcss-animate")],
-}
-export default config
+};
+export default config;

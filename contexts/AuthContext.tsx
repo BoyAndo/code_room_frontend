@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import React, { createContext, useContext, useEffect, useState } from "react";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 // Interfaces separadas para cada tipo de usuario
 interface Student {
@@ -26,76 +26,96 @@ interface Landlord {
 type User = Student | Landlord;
 
 interface AuthContextType {
-  user: User | null
-  token: string | null
-  login: () => void | Promise<void>
-  logout: () => void | Promise<void>
-  isAuthenticated: boolean
+  user: User | null;
+  token: string | null;
+  login: () => void | Promise<void>;
+  logout: () => void | Promise<void>;
+  isAuthenticated: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     // Al cargar la app, obtener el usuario autenticado desde el backend
     const fetchUser = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/auth/me`, {
-          credentials: "include"
-        })
-        const data = await res.json()
-        if (data.success && data.user) {
-          setUser(data.user)
+          credentials: "include",
+        });
+
+        // ✅ Verificar si la respuesta es exitosa (200-299)
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            setUser(data.user);
+          } else {
+            setUser(null);
+          }
         } else {
-          setUser(null)
+          // 401/403 es normal cuando no hay sesión activa
+          setUser(null);
         }
       } catch (error) {
-        setUser(null)
+        // Error de red u otro error
+        setUser(null);
       }
-    }
-    fetchUser()
-  }, [])
+    };
+    fetchUser();
+  }, []);
 
-  // Nuevo login: solo actualiza el usuario desde el backend tras login exitoso
+  // Actualiza el usuario desde el backend tras login exitoso
   const login = async () => {
-    // Espera a que el backend setee la cookie y luego obtiene el usuario
-    await new Promise(resolve => setTimeout(resolve, 300)) // pequeño delay opcional
     try {
       const res = await fetch(`${API_BASE_URL}/auth/me`, {
-        credentials: "include"
-      })
-      const data = await res.json()
-      if (data.success && data.user) {
-        setUser(data.user)
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          setUser(data.user);
+        } else {
+          setUser(null);
+        }
       } else {
-        setUser(null)
+        setUser(null);
       }
     } catch (error) {
-      setUser(null)
+      console.error("Error fetching user:", error);
+      setUser(null);
     }
-  }
+  };
 
   const logout = async () => {
     // Puedes agregar un endpoint /auth/logout en el backend para borrar la cookie
-    await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST", credentials: "include" })
-    setUser(null)
-  }
+    await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+    setUser(null);
+  };
 
   return (
-    <AuthContext.Provider value={{
-  user,
-  token: null,
-  login,
-  logout,
-  isAuthenticated: !!user
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token: null,
+        login,
+        logout,
+        isAuthenticated: !!user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
-  )
-}
+  );
+};
 
 // Funciones helper para verificar el tipo de usuario
 export const isStudent = (user: User | null | undefined): user is Student => {
@@ -107,9 +127,9 @@ export const isLandlord = (user: User | null | undefined): user is Landlord => {
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context
-}
+  return context;
+};

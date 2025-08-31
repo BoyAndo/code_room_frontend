@@ -1,95 +1,105 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Home, Mail, Lock, User, FileText, Eye, EyeOff, Building2 } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { api } from "@/lib/api"
-import { useAuth } from '@/contexts/AuthContext'
+import type React from "react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Home,
+  Mail,
+  Lock,
+  User,
+  FileText,
+  Eye,
+  EyeOff,
+  Building2,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LandlordRegisterPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const router = useRouter()
-  const { login } = useAuth()
-
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     landlordName: "",
     landlordEmail: "",
     landlordRut: "",
     password: "",
-    confirmPassword: ""
-  })
-  const [carnetFile, setCarnetFile] = useState<File | null>(null)
+    confirmPassword: "",
+  });
+  const [carnetFile, setCarnetFile] = useState<File | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Las contraseñas no coinciden")
-      setLoading(false)
-      return
+      setError("Las contraseñas no coinciden");
+      setLoading(false);
+      return;
     }
     if (!carnetFile) {
-      setError("Por favor, sube una foto de tu carnet")
-      setLoading(false)
-      return
+      setError("Por favor, sube una foto de tu carnet");
+      setLoading(false);
+      return;
     }
 
     try {
-  // Obtener CSRF token desde el helper API
-  const csrfToken = await api.getCsrfToken();
+      const formDataToSend = new FormData();
+      formDataToSend.append("landlordName", formData.landlordName);
+      formDataToSend.append("landlordRut", formData.landlordRut);
+      formDataToSend.append("landlordEmail", formData.landlordEmail);
+      formDataToSend.append("password", formData.password);
+      formDataToSend.append("landlordCarnet", carnetFile);
 
-      const formDataToSend = new FormData()
-      formDataToSend.append("landlordName", formData.landlordName)
-      formDataToSend.append("landlordRut", formData.landlordRut)
-      formDataToSend.append("landlordEmail", formData.landlordEmail)
-      formDataToSend.append("password", formData.password)
-      formDataToSend.append("landlordCarnet", carnetFile)
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+        }/auth/landlords-register`,
+        {
+          method: "POST",
+          body: formDataToSend,
+          credentials: "include", // ✅ Para recibir cookies httpOnly
+        }
+      );
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/landlords-register`, {
-        method: "POST",
-        body: formDataToSend,
-        credentials: "include",
-        headers: { "X-CSRF-Token": csrfToken }
-      });
       if (response.ok) {
         const data = await response.json();
         await login();
         // Redirige según el usuario actualizado en el contexto
         setTimeout(() => {
-          if (typeof window !== 'undefined') {
-            window.location.href = '/profile/landlord';
+          if (typeof window !== "undefined") {
+            window.location.href = "/profile/landlord";
           }
         }, 300);
       } else {
-        const errorData = await response.json()
-        setError(errorData.message || "Error en el registro")
+        const errorData = await response.json();
+        setError(errorData.message || "Error en el registro");
       }
     } catch (error) {
-      console.error('Error:', error);
-      setError("Error de conexión. Intenta nuevamente.")
+      console.error("Error:", error);
+      setError("Error de conexión. Intenta nuevamente.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null
-    setCarnetFile(file)
-  }
+    const file = e.target.files?.[0] || null;
+    setCarnetFile(file);
+  };
 
   return (
-    <div className="min-h-screen bg-cream/20 flex items-center justify-center p-4">
+    <div className="min-h-screen code-room-subtle-pattern flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -97,19 +107,27 @@ export default function LandlordRegisterPage() {
             <div className="w-12 h-12 bg-gradient-to-br from-sage to-sage/70 rounded-xl flex items-center justify-center">
               <Home className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-neutral-800">Code Room</span>
+            <span className="text-2xl font-bold text-neutral-800">
+              Code Room
+            </span>
           </Link>
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Building2 className="h-8 w-8 text-sage" />
-            <h1 className="text-2xl font-bold text-neutral-800">Registro de Arrendador</h1>
+            <h1 className="text-2xl font-bold text-neutral-800">
+              Registro de Arrendador
+            </h1>
           </div>
-          <p className="text-neutral-600">Completa tus datos para crear tu cuenta</p>
+          <p className="text-neutral-600">
+            Completa tus datos para crear tu cuenta
+          </p>
         </div>
 
         {/* Registration Form */}
         <Card className="bg-white backdrop-blur-sm border-sage/20 shadow-xl">
           <CardHeader>
-            <CardTitle className="text-center text-neutral-800">Información del Arrendador</CardTitle>
+            <CardTitle className="text-center text-neutral-800">
+              Información del Arrendador
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {error && (
@@ -117,7 +135,6 @@ export default function LandlordRegisterPage() {
                 {error}
               </div>
             )}
-
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Nombre completo */}
@@ -132,7 +149,9 @@ export default function LandlordRegisterPage() {
                     type="text"
                     placeholder="Tu nombre completo"
                     value={formData.landlordName}
-                    onChange={(e) => setFormData({ ...formData, landlordName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, landlordName: e.target.value })
+                    }
                     className="pl-10 border-sage/30 focus:border-sage focus:ring-sage/20"
                     required
                   />
@@ -151,7 +170,9 @@ export default function LandlordRegisterPage() {
                     type="text"
                     placeholder="12.345.678-9"
                     value={formData.landlordRut}
-                    onChange={(e) => setFormData({ ...formData, landlordRut: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, landlordRut: e.target.value })
+                    }
                     className="pl-10 border-sage/30 focus:border-sage focus:ring-sage/20"
                     required
                   />
@@ -170,7 +191,12 @@ export default function LandlordRegisterPage() {
                     type="email"
                     placeholder="tu@email.com"
                     value={formData.landlordEmail}
-                    onChange={(e) => setFormData({ ...formData, landlordEmail: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        landlordEmail: e.target.value,
+                      })
+                    }
                     className="pl-10 border-sage/30 focus:border-sage focus:ring-sage/20"
                     required
                   />
@@ -189,7 +215,9 @@ export default function LandlordRegisterPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Crea una contraseña segura"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
                     className="pl-10 pr-10 border-sage/30 focus:border-sage focus:ring-sage/20"
                     required
                   />
@@ -198,7 +226,11 @@ export default function LandlordRegisterPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -215,7 +247,12 @@ export default function LandlordRegisterPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Repite tu contraseña"
                     value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        confirmPassword: e.target.value,
+                      })
+                    }
                     className="pl-10 pr-10 border-sage/30 focus:border-sage focus:ring-sage/20"
                     required
                   />
@@ -243,9 +280,9 @@ export default function LandlordRegisterPage() {
                 </p>
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full bg-sage hover:bg-sage/90 text-white py-3 text-lg font-semibold"
+              <Button
+                type="submit"
+                className="w-full bg-golden hover:bg-education text-white py-3 text-lg font-semibold"
                 disabled={loading}
               >
                 {loading ? "Registrando..." : "Crear Cuenta de Arrendador"}
@@ -255,7 +292,10 @@ export default function LandlordRegisterPage() {
             <div className="mt-6 text-center">
               <p className="text-neutral-600">
                 ¿Ya tienes cuenta?{" "}
-                <Link href="/login" className="text-sage hover:text-sage/80 font-semibold">
+                <Link
+                  href="/login"
+                  className="text-sage hover:text-sage/80 font-semibold"
+                >
                   Iniciar sesión
                 </Link>
               </p>
@@ -264,11 +304,14 @@ export default function LandlordRegisterPage() {
         </Card>
 
         <div className="mt-6 text-center">
-          <Link href="/register" className="text-neutral-600 hover:text-sage text-sm">
+          <Link
+            href="/register"
+            className="text-neutral-600 hover:text-sage text-sm"
+          >
             ← Volver a selección de tipo
           </Link>
         </div>
       </div>
     </div>
-  )
+  );
 }

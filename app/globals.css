@@ -4,12 +4,12 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --background: 38 25% 97%; /* Light warm beige */
+    --foreground: 30 15% 35%; /* Warm brown text */
+    --card: 0 0% 100%; /* Pure white cards */
+    --card-foreground: 30 15% 35%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 30 15% 35%;
     --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96%;
@@ -63,12 +63,43 @@
   background: linear-gradient(135deg, #cdc1a5 0%, #a1c1b0 100%);
 }
 
+.code-room-modern-bg {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #cbd5e1 100%);
+}
+
+.code-room-education-bg {
+  background: linear-gradient(135deg, #f8f5f1 0%, #f4ede4 50%, #f0e6d6 100%);
+}
+
+.code-room-subtle-pattern {
+  background: radial-gradient(
+      circle at 20% 80%,
+      rgba(139, 111, 71, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(212, 175, 55, 0.06) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 40% 40%,
+      rgba(160, 132, 109, 0.05) 0%,
+      transparent 50%
+    ),
+    linear-gradient(135deg, #f8f5f1 0%, #f4ede4 100%);
+}
+
 .code-room-card {
-  @apply bg-white/90 backdrop-blur-sm border border-sage/20 shadow-lg;
+  @apply bg-white/95 backdrop-blur-sm border border-sage/20 shadow-lg;
 }
 
 .code-room-button-primary {
   @apply bg-sage hover:bg-sage/90 text-white;
+}
+
+.code-room-button-golden {
+  @apply bg-golden hover:bg-education text-white font-semibold;
 }
 
 .code-room-button-secondary {
