@@ -36,7 +36,6 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import axios from "axios";
 
 // Definir tipos para las propiedades
 interface Amenity {
@@ -136,17 +135,24 @@ export default function SearchPage() {
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(
+      const response = await fetch(
         "http://localhost:3002/api/properties/with-landlord",
         {
+          method: "GET",
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
+          credentials: "include",
         }
       );
 
-      const data = response.data.data.properties; // Nueva estructura anidada
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const data = result.data.properties; // Nueva estructura anidada
       console.log("Fetched properties:", data);
 
       // Los datos ya vienen en el formato correcto de la interfaz Property
