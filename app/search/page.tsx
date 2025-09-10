@@ -422,7 +422,6 @@ export default function SearchPage() {
                         variant="secondary"
                         className="text-xs bg-sage/10 text-sage flex items-center gap-1"
                       >
-                        {getAmenityIcon(amenity.icon)}
                         {amenity.name}
                       </Badge>
                     ))}
