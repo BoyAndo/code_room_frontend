@@ -20,52 +20,146 @@ import {
   Heart,
   MessageCircle,
   Search,
-  GraduationCap,
-  BookOpen,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
-import { useAuth, isStudent, isLandlord } from "@/contexts/AuthContext"; // Importa el hook de autenticación y type guards
+import { useAuth, isStudent, isLandlord } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
-export default function StudentProfile() {
+export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
-  const { user, logout } = useAuth(); // Obtén el usuario y función de logout del contexto
+  const [isUploading, setIsUploading] = useState(false);
+  const { user, logout, updateUser } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
-  // Usar datos reales del usuario o datos por defecto
   const [profileData, setProfileData] = useState({
-    name: isStudent(user) ? user.studentName : "Nombre no disponible",
-    email: isStudent(user) ? user.studentEmail : "Email no disponible",
-    university: isStudent(user)
-      ? user.studentCollege
-      : "Universidad no especificada",
+    name: "",
+    email: "",
+    phone: "",
+    college: "",
     documentStatus: "validated" as "pending" | "validated" | "rejected",
   });
+
+  useEffect(() => {
+    if (isStudent(user)) {
+      setProfileData({
+        name: user.studentName || "",
+        email: user.studentEmail || "",
+        phone: "", // Agregar si es necesario
+        college: user.studentCollege || "",
+        documentStatus: "validated",
+      });
+    } else if (isLandlord(user)) {
+      setProfileData({
+        name: user.landlordName || "",
+        email: user.landlordEmail || "",
+        phone: "", // Agregar si es necesario
+        college: "", // No aplica para landlord
+        documentStatus: "validated",
+      });
+    }
+  }, [user]);
 
   const handleLogout = () => {
     logout();
     router.push("/");
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // Aquí podrías agregar una llamada a la API para actualizar los datos
-    // api.post("/auth/update-profile", profileData)
+  const handleSave = async () => {
+    try {
+      // Aquí implementar la llamada a la API para actualizar los datos
+      setIsEditing(false);
+      toast({
+        title: "Perfil actualizado",
+        description: "Los cambios han sido guardados exitosamente.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudieron guardar los cambios.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const getStatusBadge = () => {
-    return (
-      <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-        <CheckCircle className="h-3 w-3 mr-1" />
-        Validado
-      </Badge>
-    );
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      // Determinar la URL del endpoint según el tipo de usuario
+      const endpoint = isStudent(user) 
+        ? '/api/students/profile-photo'
+        : '/api/landlords/profile-photo';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) throw new Error('Error al subir la foto');
+
+      const data = await response.json();
+      
+    // Actualizar el contexto del usuario con la nueva URL de la foto
+    //  updateUser({
+    //  ...user,
+    //  profilePhotoUrl: data.photoUrl
+    //  });
+
+      toast({
+        title: "Foto actualizada",
+        description: "Tu foto de perfil ha sido actualizada exitosamente.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la foto de perfil.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  // Si no hay usuario, muestra un mensaje de carga o redirige
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "validated":
+        return (
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Validado
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+            <Clock className="h-3 w-3 mr-1" />
+            Pendiente
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge className="bg-red-100 text-red-800 border-red-200">
+            <XCircle className="h-3 w-3 mr-1" />
+            Rechazado
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
   if (!user) {
     return (
-      <div className="min-h-screen code-room-subtle-pattern flex items-center justify-center">
+      <div className="min-h-screen bg-cream/20 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sage mx-auto mb-4"></div>
           <p className="text-neutral-600">Cargando perfil...</p>
@@ -75,7 +169,7 @@ export default function StudentProfile() {
   }
 
   return (
-    <div className="min-h-screen code-room-subtle-pattern">
+    <div className="min-h-screen bg-cream/20">
       {/* Header */}
       <header className="bg-white border-b border-sage/20 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
@@ -109,24 +203,49 @@ export default function StudentProfile() {
             <CardHeader>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 <div className="flex flex-col items-center">
-                  <div className="w-24 h-24 bg-gradient-to-br from-sage to-sage/70 rounded-full flex items-center justify-center mb-3 cursor-pointer hover:opacity-80 transition-opacity">
-                    <User className="h-12 w-12 text-white" />
+                  <div className="relative">
+                    <div className="w-24 h-24 bg-gradient-to-br from-sage to-sage/70 rounded-full flex items-center justify-center mb-3 overflow-hidden">
+                      {user.profilePhotoUrl ? (
+                        <img 
+                          src={user.profilePhotoUrl} 
+                          alt="Foto de perfil"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="h-12 w-12 text-white" />
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      id="photo-upload"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="photo-upload"
+                      className="cursor-pointer"
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs border-sage/30 text-sage hover:bg-sage/10"
+                        disabled={isUploading}
+                      >
+                        {isUploading ? 'Subiendo...' : 'Cambiar foto'}
+                      </Button>
+                    </label>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs border-sage/30 text-sage hover:bg-sage/10"
-                  >
-                    Cambiar foto
-                  </Button>
                 </div>
                 <div className="flex-1">
                   <CardTitle className="text-neutral-800 mb-2">
                     {profileData.name}
                   </CardTitle>
-                  <p className="text-neutral-600 mb-1">Estudiante</p>
+                  <p className="text-neutral-600 mb-1">
+                    {isStudent(user) ? "Estudiante" : "Arrendador"}
+                  </p>
                   <p className="text-sm text-sage font-medium mb-4">
-                    {isStudent(user) ? user.studentRut : ""}
+                    {isStudent(user) ? user.studentRut : user.landlordRut}
                   </p>
                   <div className="flex gap-2 flex-wrap">
                     <Button
@@ -182,20 +301,22 @@ export default function StudentProfile() {
                       className="border-sage/30 focus:border-sage focus:ring-sage/20"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="university">Universidad</Label>
-                    <Input
-                      id="university"
-                      value={profileData.university}
-                      onChange={(e) =>
-                        setProfileData({
-                          ...profileData,
-                          university: e.target.value,
-                        })
-                      }
-                      className="border-sage/30 focus:border-sage focus:ring-sage/20"
-                    />
-                  </div>
+                  {isStudent(user) && (
+                    <div>
+                      <Label htmlFor="college">Universidad</Label>
+                      <Input
+                        id="college"
+                        value={profileData.college}
+                        onChange={(e) =>
+                          setProfileData({
+                            ...profileData,
+                            college: e.target.value,
+                          })
+                        }
+                        className="border-sage/30 focus:border-sage focus:ring-sage/20"
+                      />
+                    </div>
+                  )}
                   <Button
                     onClick={handleSave}
                     className="bg-golden hover:bg-education text-white font-semibold"
@@ -222,15 +343,17 @@ export default function StudentProfile() {
                   <div>
                     <Label className="text-neutral-700">RUT</Label>
                     <p className="text-neutral-800 font-medium">
-                      {isStudent(user) ? user.studentRut : ""}
+                      {isStudent(user) ? user.studentRut : user.landlordRut}
                     </p>
                   </div>
-                  <div>
-                    <Label className="text-neutral-700">Universidad</Label>
-                    <p className="text-neutral-800 font-medium">
-                      {profileData.university}
-                    </p>
-                  </div>
+                  {isStudent(user) && (
+                    <div>
+                      <Label className="text-neutral-700">Universidad</Label>
+                      <p className="text-neutral-800 font-medium">
+                        {profileData.college}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -249,29 +372,49 @@ export default function StudentProfile() {
                   <CheckCircle className="h-6 w-6 text-blue-600" />
                   <div>
                     <p className="font-medium text-blue-800">
-                      Certificado de Alumno Regular
+                      {isStudent(user)
+                        ? "Certificado de Alumno Regular"
+                        : "Carnet de Identidad"}
                     </p>
                     <p className="text-sm text-blue-600">
                       Documento verificado correctamente
                     </p>
                   </div>
                 </div>
-                {getStatusBadge()}
+                {getStatusBadge(profileData.documentStatus)}
               </div>
-              {isStudent(user) && user.studentCertificateUrl && (
-                <div className="mt-4">
-                  <Label className="text-neutral-700">
-                    Certificado subido:
-                  </Label>
-                  <a
-                    href={user.studentCertificateUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sage hover:text-sage/80 underline text-sm block mt-1"
-                  >
-                    Ver certificado
-                  </a>
-                </div>
+              {isStudent(user) ? (
+                user.studentCertificateUrl && (
+                  <div className="mt-4">
+                    <Label className="text-neutral-700">
+                      Certificado subido:
+                    </Label>
+                    <a
+                      href={user.studentCertificateUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sage hover:text-sage/80 underline text-sm block mt-1"
+                    >
+                      Ver certificado
+                    </a>
+                  </div>
+                )
+              ) : (
+                user.landlordCarnetUrl && (
+                  <div className="mt-4">
+                    <Label className="text-neutral-700">
+                      Carnet subido:
+                    </Label>
+                    <a
+                      href={user.landlordCarnetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sage hover:text-sage/80 underline text-sm block mt-1"
+                    >
+                      Ver carnet
+                    </a>
+                  </div>
+                )
               )}
             </CardContent>
           </Card>
@@ -291,7 +434,7 @@ export default function StudentProfile() {
                     className="w-full border-sage/30 text-sage hover:bg-sage/10 bg-transparent"
                   >
                     <Search className="h-4 w-4 mr-2" />
-                    Buscar Propiedades
+                    {isStudent(user) ? "Buscar Propiedades" : "Mis Propiedades"}
                   </Button>
                 </Link>
                 <Button
@@ -299,7 +442,7 @@ export default function StudentProfile() {
                   className="w-full border-sage/30 text-sage hover:bg-sage/10 bg-transparent"
                 >
                   <Heart className="h-4 w-4 mr-2" />
-                  Mis Favoritos
+                  {isStudent(user) ? "Mis Favoritos" : "Solicitudes"}
                 </Button>
                 <Button
                   variant="outline"
