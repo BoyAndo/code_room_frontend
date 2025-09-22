@@ -78,7 +78,7 @@ export default function LandlordRegisterPage() {
         // Redirige según el usuario actualizado en el contexto
         setTimeout(() => {
           if (typeof window !== "undefined") {
-            window.location.href = "/profile/landlord";
+            window.location.href = "/profile";
           }
         }, 300);
       } else {

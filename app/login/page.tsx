@@ -59,11 +59,7 @@ export default function LoginPage() {
   // Redirige automáticamente cuando el usuario se actualiza tras login
   useEffect(() => {
     if (user) {
-      if (user.role === "student") {
-        router.push("/profile/student");
-      } else if (user.role === "landlord") {
-        router.push("/profile/landlord");
-      }
+      router.push("/profile");
     }
   }, [user, router]);
   return (

@@ -32,13 +32,7 @@ export default function StudentRegisterPage() {
   // Redirige automáticamente cuando el usuario se actualiza tras login
   useEffect(() => {
     if (redirectAfterLogin && user) {
-      if (user.role === "student") {
-        router.push("/profile/student");
-      } else if (user.role === "landlord") {
-        router.push("/profile/landlord");
-      } else {
-        router.push("/");
-      }
+      router.push("/profile");
     }
   }, [redirectAfterLogin, user, router]);
 
@@ -91,7 +85,7 @@ export default function StudentRegisterPage() {
         setTimeout(() => {
           if (typeof window !== "undefined") {
             // Forzar actualización del contexto
-            window.location.href = "/profile/student";
+            window.location.href = "/profile";
           }
         }, 300);
       } else {
