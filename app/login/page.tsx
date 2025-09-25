@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Home, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext"; // Importa el hook
 
 export default function LoginPage() {
