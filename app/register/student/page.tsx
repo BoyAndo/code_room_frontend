@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext"; // Importa el hook
+import { RegionCommuneSelect } from "@/components/RegionCommuneSelect";
 
 export default function StudentRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -50,6 +51,31 @@ export default function StudentRegisterPage() {
     studentCollege: "",
   });
 
+  // Estados para región y comuna
+  const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
+  const [selectedComunaId, setSelectedComunaId] = useState<number | null>(null);
+  const [selectedRegionName, setSelectedRegionName] = useState<string>("");
+  const [selectedComunaName, setSelectedComunaName] = useState<string>("");
+  // Handlers para región y comuna que reciben tanto ID como nombre
+  const handleRegionChange = (
+    regionId: number | null,
+    regionName?: string | null
+  ) => {
+    setSelectedRegionId(regionId);
+    setSelectedRegionName(regionName || "");
+    // Reset comuna when region changes
+    setSelectedComunaId(null);
+    setSelectedComunaName("");
+  };
+
+  const handleComunaChange = (
+    comunaId: number | null,
+    comunaName?: string | null
+  ) => {
+    setSelectedComunaId(comunaId);
+    setSelectedComunaName(comunaName || "");
+  };
+
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,6 +98,21 @@ export default function StudentRegisterPage() {
       formDataToSend.append("password", formData.password);
       formDataToSend.append("studentCollege", formData.studentCollege);
       formDataToSend.append("studentCertificateUrl", certificateFile);
+
+      // Agregar campos de ubicación (opcionales)
+      if (selectedRegionId) {
+        formDataToSend.append("regionId", selectedRegionId.toString());
+      }
+      if (selectedComunaId) {
+        formDataToSend.append("comunaId", selectedComunaId.toString());
+      }
+      // Agregar nombres para validación OCR
+      if (selectedRegionName) {
+        formDataToSend.append("regionName", selectedRegionName);
+      }
+      if (selectedComunaName) {
+        formDataToSend.append("comunaName", selectedComunaName);
+      }
 
       const response = await fetch(
         `${
@@ -268,6 +309,16 @@ export default function StudentRegisterPage() {
                   />
                 </div>
               </div>
+
+              {/* Ubicación - Región y Comuna */}
+              <RegionCommuneSelect
+                selectedRegionId={selectedRegionId}
+                selectedComunaId={selectedComunaId}
+                onRegionChange={handleRegionChange}
+                onComunaChange={handleComunaChange}
+                required={false}
+                className="mt-4"
+              />
 
               {/* Student Certificate */}
               <div className="space-y-2">

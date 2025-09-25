@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { RegionCommuneSelect } from "@/components/RegionCommuneSelect";
 
 export default function LandlordRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +36,34 @@ export default function LandlordRegisterPage() {
     password: "",
     confirmPassword: "",
   });
+
+  // Estados para región y comuna
+  const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
+  const [selectedComunaId, setSelectedComunaId] = useState<number | null>(null);
+  const [selectedRegionName, setSelectedRegionName] = useState<string>("");
+  const [selectedComunaName, setSelectedComunaName] = useState<string>("");
+
   const [carnetFile, setCarnetFile] = useState<File | null>(null);
+
+  // Handlers para región y comuna que reciben tanto ID como nombre
+  const handleRegionChange = (
+    regionId: number | null,
+    regionName?: string | null
+  ) => {
+    setSelectedRegionId(regionId);
+    setSelectedRegionName(regionName || "");
+    // Reset comuna when region changes
+    setSelectedComunaId(null);
+    setSelectedComunaName("");
+  };
+
+  const handleComunaChange = (
+    comunaId: number | null,
+    comunaName?: string | null
+  ) => {
+    setSelectedComunaId(comunaId);
+    setSelectedComunaName(comunaName || "");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +88,14 @@ export default function LandlordRegisterPage() {
       formDataToSend.append("landlordEmail", formData.landlordEmail);
       formDataToSend.append("password", formData.password);
       formDataToSend.append("landlordCarnet", carnetFile);
+
+      // Agregar campos de ubicación (opcionales)
+      if (selectedRegionId) {
+        formDataToSend.append("regionId", selectedRegionId.toString());
+      }
+      if (selectedComunaId) {
+        formDataToSend.append("comunaId", selectedComunaId.toString());
+      }
 
       const response = await fetch(
         `${
@@ -258,6 +294,16 @@ export default function LandlordRegisterPage() {
                   />
                 </div>
               </div>
+
+              {/* Ubicación - Región y Comuna */}
+              <RegionCommuneSelect
+                selectedRegionId={selectedRegionId}
+                selectedComunaId={selectedComunaId}
+                onRegionChange={handleRegionChange}
+                onComunaChange={handleComunaChange}
+                required={false}
+                className="mt-4"
+              />
 
               {/* Carnet de identidad */}
               <div className="space-y-2">

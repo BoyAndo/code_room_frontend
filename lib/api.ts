@@ -1,5 +1,24 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+// Tipos para Region y Comuna
+export interface Region {
+  id: number;
+  code: string;
+  name: string;
+  romanNumber: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Comuna {
+  id: number;
+  name: string;
+  regionId: number;
+  createdAt: string;
+  updatedAt: string;
+  region?: Region;
+}
+
 export const api = {
   async post(endpoint: string, data: any, isFormData: boolean = false) {
     const url = `${API_BASE_URL}${endpoint}`;
@@ -56,6 +75,33 @@ export const api = {
       return response;
     } catch (error) {
       console.error("🔴 Fetch error:", error);
+      throw error;
+    }
+  },
+
+  // Funciones para obtener regiones y comunas
+  async getRegions(): Promise<Region[]> {
+    try {
+      const response = await this.get("/locations/regions");
+      if (response.ok) {
+        return await response.json();
+      }
+      throw new Error("Error al obtener las regiones");
+    } catch (error) {
+      console.error("Error fetching regions:", error);
+      throw error;
+    }
+  },
+
+  async getCommunesByRegion(regionId: number): Promise<Comuna[]> {
+    try {
+      const response = await this.get(`/locations/regions/${regionId}/comunas`);
+      if (response.ok) {
+        return await response.json();
+      }
+      throw new Error("Error al obtener las comunas");
+    } catch (error) {
+      console.error("Error fetching communes:", error);
       throw error;
     }
   },
