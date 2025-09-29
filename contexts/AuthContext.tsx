@@ -11,6 +11,7 @@ interface Student {
   studentName: string;
   studentCollege: string;
   studentCertificateUrl: string;
+  profilePhotoUrl?: string;
   role: string;
 }
 
@@ -20,6 +21,7 @@ interface Landlord {
   landlordEmail: string;
   landlordName: string;
   landlordCarnetUrl: string;
+  profilePhotoUrl?: string;
   role: string;
 }
 
@@ -30,6 +32,7 @@ interface AuthContextType {
   token: string | null;
   login: () => void | Promise<void>;
   logout: () => void | Promise<void>;
+  updateUser: (updatedUser: User) => void;
   isAuthenticated: boolean;
 }
 
@@ -102,6 +105,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(null);
   };
 
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -109,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         token: null,
         login,
         logout,
+        updateUser,
         isAuthenticated: !!user,
       }}
     >

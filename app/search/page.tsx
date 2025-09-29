@@ -216,7 +216,7 @@ export default function SearchPage() {
               <Button variant="ghost" size="sm">
                 <Bell className="h-5 w-5 text-neutral-600" />
               </Button>
-              <Link href="/profile/student">
+              <Link href="/profile">
                 <Button variant="ghost" size="sm">
                   <User className="h-5 w-5 text-neutral-600" />
                 </Button>
