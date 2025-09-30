@@ -67,7 +67,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center space-x-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-sage to-sage/70 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-golden to-education rounded-xl flex items-center justify-center">
               <Home className="h-6 w-6 text-white" />
             </div>
             <span className="text-2xl font-bold text-neutral-800">
@@ -153,7 +153,7 @@ export default function LoginPage() {
                 </label>
                 <Link
                   href="/forgot-password"
-                  className="text-sage hover:text-sage/80"
+                  className="text-golden hover:text-education"
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
@@ -173,7 +173,7 @@ export default function LoginPage() {
                 ¿No tienes cuenta?{" "}
                 <Link
                   href="/register"
-                  className="text-sage hover:text-sage/80 font-semibold"
+                  className="text-golden hover:text-education font-semibold"
                 >
                   Regístrate
                 </Link>
@@ -184,7 +184,7 @@ export default function LoginPage() {
 
         {/* Additional Options */}
         <div className="mt-6 text-center">
-          <Link href="/" className="text-neutral-600 hover:text-sage text-sm">
+          <Link href="/" className="text-neutral-600 hover:text-golden text-sm">
             ← Volver al inicio
           </Link>
         </div>

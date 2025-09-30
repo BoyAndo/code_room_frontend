@@ -317,7 +317,7 @@ export default function LandlordRegisterPage() {
                     type="file"
                     accept="image/*"
                     onChange={handleFileChange}
-                    className="pl-10 border-sage/30 focus:border-sage focus:ring-sage/20 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sage/10 file:text-sage hover:file:bg-sage/20"
+                    className="pl-10 border-sage/30 focus:border-sage focus:ring-sage/20 file:mr-4  file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sage/10 file:text-sage hover:file:bg-sage/20"
                     required
                   />
                 </div>

@@ -18,14 +18,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext"; // Importa el hook
 import { RegionCommuneSelect } from "@/components/RegionCommuneSelect";
 
 export default function StudentRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // ✅ Estado separado para confirmación
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [passwordError, setPasswordError] = useState(""); // ✅ Estado para error de contraseña
+  const [confirmPasswordError, setConfirmPasswordError] = useState(""); // ✅ Estado para error de confirmación
   const router = useRouter();
   const { login, user } = useAuth();
   const [redirectAfterLogin, setRedirectAfterLogin] = useState(false);
@@ -42,7 +44,8 @@ export default function StudentRegisterPage() {
     studentEmail: "",
     studentRut: "",
     password: "",
-    studentCollege: "",
+    confirmPassword: "", // ✅ Campo de confirmación de contraseña
+    studentCollege: "Duoc UC", // ✅ Valor por defecto bloqueado
   });
 
   // Estados para región y comuna
@@ -70,6 +73,46 @@ export default function StudentRegisterPage() {
     setSelectedComunaName(comunaName || "");
   };
 
+  // ✅ Función para validar contraseña
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+
+    if (newPassword.length > 12) {
+      setPasswordError("La contraseña no puede exceder 12 caracteres");
+      return; // No actualizar el estado si excede el límite
+    }
+
+    setPasswordError(""); // Limpiar error si está dentro del límite
+    setFormData({ ...formData, password: newPassword });
+
+    // Validar confirmación si ya hay una confirmación escrita
+    if (formData.confirmPassword && newPassword !== formData.confirmPassword) {
+      setConfirmPasswordError("Las contraseñas no coinciden");
+    } else {
+      setConfirmPasswordError("");
+    }
+  };
+
+  // ✅ Función para validar confirmación de contraseña
+  const handleConfirmPasswordChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const confirmPassword = e.target.value;
+
+    if (confirmPassword.length > 12) {
+      setConfirmPasswordError("La contraseña no puede exceder 12 caracteres");
+      return;
+    }
+
+    setFormData({ ...formData, confirmPassword });
+
+    // Validar si coincide con la contraseña principal
+    if (formData.password && confirmPassword !== formData.password) {
+      setConfirmPasswordError("Las contraseñas no coinciden");
+    } else {
+      setConfirmPasswordError("");
+    }
+  };
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,6 +121,13 @@ export default function StudentRegisterPage() {
     setError("");
 
     try {
+      // ✅ Validar que las contraseñas coincidan
+      if (formData.password !== formData.confirmPassword) {
+        setError("Las contraseñas no coinciden");
+        setLoading(false);
+        return;
+      }
+
       if (!certificateFile) {
         setError("Por favor, sube tu certificado de alumno regular");
         setLoading(false);
@@ -249,9 +299,12 @@ export default function StudentRegisterPage() {
               </div>
 
               {/* Password */}
-              <div className="space-y-2">
+              <div className="">
                 <Label htmlFor="password" className="text-neutral-700">
-                  Contraseña
+                  Contraseña{" "}
+                  <span className="text-sm text-neutral-500">
+                    (máx. 12 caracteres)
+                  </span>
                 </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500" />
@@ -260,9 +313,8 @@ export default function StudentRegisterPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Crea una contraseña segura"
                     value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
+                    onChange={handlePasswordChange} // ✅ Usar nueva función de validación
+                    maxLength={12} // ✅ Límite HTML adicional
                     className="pl-10 pr-10 border-sage/30 focus:border-sage focus:ring-sage/20"
                     required
                   />
@@ -278,6 +330,62 @@ export default function StudentRegisterPage() {
                     )}
                   </button>
                 </div>
+                {/* Mostrar alerta de error de contraseña */}
+                {passwordError && (
+                  <p className="text-sm text-red-600 flex items-center gap-2">
+                    <span className="text-red-500">⚠️</span>
+                    {passwordError}
+                  </p>
+                )}
+                {/* ✅ Contador de caracteres */}
+                <p className="text-xs text-neutral-500 text-right">
+                  {formData.password.length}/12 caracteres
+                </p>
+              </div>
+
+              {/* ✅ Confirm Password */}
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-neutral-700">
+                  Confirmar contraseña{" "}
+                  <span className="text-sm text-neutral-500">
+                    (máx. 12 caracteres)
+                  </span>
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500" />
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirma tu contraseña"
+                    value={formData.confirmPassword}
+                    onChange={handleConfirmPasswordChange}
+                    maxLength={12}
+                    className="pl-10 pr-10 border-sage/30 focus:border-sage focus:ring-sage/20"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {/* ✅ Mostrar alerta de error de confirmación */}
+                {confirmPasswordError && (
+                  <p className="text-sm text-red-600 flex items-center gap-2">
+                    <span className="text-red-500">⚠️</span>
+                    {confirmPasswordError}
+                  </p>
+                )}
+                {/* ✅ Contador de caracteres */}
+                <p className="text-xs text-neutral-500 text-right">
+                  {formData.confirmPassword.length}/12 caracteres
+                </p>
               </div>
 
               {/* Student College */}
@@ -290,15 +398,9 @@ export default function StudentRegisterPage() {
                   <Input
                     id="studentCollege"
                     type="text"
-                    placeholder="Nombre de tu institución educativa"
-                    value={formData.studentCollege}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        studentCollege: e.target.value,
-                      })
-                    }
-                    className="pl-10 border-sage/30 focus:border-sage focus:ring-sage/20"
+                    value={formData.studentCollege} // ✅ Solo valor, sin placeholder
+                    readOnly // ✅ Campo bloqueado
+                    className="pl-10 border-sage/30 bg-neutral-50 text-neutral-700 cursor-not-allowed" // ✅ Estilo de campo bloqueado
                     required
                   />
                 </div>
@@ -329,7 +431,7 @@ export default function StudentRegisterPage() {
                     type="file"
                     accept=".pdf"
                     onChange={handleFileChange}
-                    className="pl-10 border-sage/30 focus:border-sage focus:ring-sage/20 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sage/10 file:text-sage hover:file:bg-sage/20"
+                    className="pl-10 pb-5 border-sage/30 focus:border-sage focus:ring-sage/20 file:mr-4  file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sage/10 file:text-sage hover:file:bg-sage/20"
                     required
                   />
                 </div>

@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Home, GraduationCap, Building2 } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Home, GraduationCap, Building2 } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function RegisterPage() {
   return (
@@ -13,13 +13,19 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <Link href="/" className="inline-flex items-center space-x-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-sage to-sage/70 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-golden to-education rounded-xl flex items-center justify-center">
               <Home className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-neutral-800">Code Room</span>
+            <span className="text-2xl font-bold text-neutral-800">
+              Code Room
+            </span>
           </Link>
-          <h1 className="text-3xl md:text-4xl font-bold text-neutral-800 mb-4">¿Cómo quieres registrarte?</h1>
-          <p className="text-lg text-neutral-600">Elige el tipo de cuenta que mejor se adapte a ti</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-neutral-800 mb-4">
+            ¿Cómo quieres registrarte?
+          </h1>
+          <p className="text-lg text-neutral-600">
+            Elige el tipo de cuenta que mejor se adapte a ti
+          </p>
         </div>
 
         {/* User Type Selection Cards */}
@@ -37,14 +43,17 @@ export default function RegisterPage() {
                 />
               </div>
               <div className="mb-6">
-                <GraduationCap className="h-12 w-12 text-sage mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-neutral-800 mb-3">Soy Estudiante</h2>
+                <GraduationCap className="h-12 w-12 text-golden mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-neutral-800 mb-3">
+                  Soy Estudiante
+                </h2>
                 <p className="text-neutral-600 mb-6">
-                  Busco un lugar seguro y cómodo para vivir cerca de mi universidad
+                  Busco un lugar seguro y cómodo para vivir cerca de mi
+                  universidad
                 </p>
               </div>
               <Link href="/register/student" className="block">
-                <Button className="w-full bg-sage hover:bg-sage/90 text-white py-4 text-lg font-semibold group-hover:bg-sage/80 transition-colors">
+                <Button className="w-full bg-golden hover:bg-education text-white py-4 text-lg font-semibold group-hover:bg-education transition-colors">
                   Registrarme como Estudiante
                 </Button>
               </Link>
@@ -64,12 +73,16 @@ export default function RegisterPage() {
                 />
               </div>
               <div className="mb-6">
-                <Building2 className="h-12 w-12 text-sage mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-neutral-800 mb-3">Soy Arrendador</h2>
-                <p className="text-neutral-600 mb-6">Tengo propiedades disponibles para estudiantes universitarios</p>
+                <Building2 className="h-12 w-12 text-golden mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-neutral-800 mb-3">
+                  Soy Arrendador
+                </h2>
+                <p className="text-neutral-600 mb-6">
+                  Tengo propiedades disponibles para estudiantes universitarios
+                </p>
               </div>
               <Link href="/register/landlord" className="block">
-                <Button className="w-full bg-sage hover:bg-sage/90 text-white py-4 text-lg font-semibold group-hover:bg-sage/80 transition-colors">
+                <Button className="w-full bg-golden hover:bg-education text-white py-4 text-lg font-semibold group-hover:bg-education transition-colors">
                   Registrarme como Arrendador
                 </Button>
               </Link>
@@ -81,15 +94,18 @@ export default function RegisterPage() {
         <div className="mt-12 text-center">
           <p className="text-neutral-600 mb-4">
             ¿Ya tienes cuenta?{" "}
-            <Link href="/login" className="text-sage hover:text-sage/80 font-semibold">
+            <Link
+              href="/login"
+              className="text-golden hover:text-education font-semibold"
+            >
               Iniciar sesión
             </Link>
           </p>
-          <Link href="/" className="text-neutral-600 hover:text-sage text-sm">
+          <Link href="/" className="text-neutral-600 hover:text-golden text-sm">
             ← Volver al inicio
           </Link>
         </div>
       </div>
     </div>
-  )
+  );
 }
