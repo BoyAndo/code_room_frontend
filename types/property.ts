@@ -7,12 +7,19 @@ export interface Property {
   address: string;
   bedrooms: number;
   bathrooms: number;
-  availableFrom: string;
-  isAvailable: boolean;
-  createdAt: string;
-  updatedAt: string;
+  squareMeters?: number;
   regionId: number;
   comunaId: number;
+  region?: string;
+  comuna?: string;
+  availableFrom: string;
+  isAvailable: boolean;
+  utilityBillUrl?: string;
+  utilityBillValidated?: boolean;
+  images?: string[];
+  amenities?: Amenity[];
+  createdAt: string;
+  updatedAt: string;
   landlordId: number;
 }
 
@@ -31,14 +38,10 @@ export interface PropertyFormData {
   bedrooms: number;
   bathrooms: number;
   squareMeters: string;
-  zipCode: string;
   regionName: string;
   comunaName: string;
   regionId: number;
   comunaId: number;
-  rules: string;
-  latitude: string;
-  longitude: string;
   amenities: number[];
   utilityBill: File | null;
   propertyImages: File[];

@@ -21,11 +21,13 @@ import { memo } from "react";
 
 interface PropertyCardProps {
   property: Property;
-  onDelete: (propertyId: number) => void;
+  onEdit: (property: Property) => void;
+  onDelete: () => void;
 }
 
 export const PropertyCard = memo(function PropertyCard({
   property,
+  onEdit,
   onDelete,
 }: PropertyCardProps) {
   return (
@@ -55,14 +57,11 @@ export const PropertyCard = memo(function PropertyCard({
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalles
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEdit(property)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Editar
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-red-600"
-                onClick={() => onDelete(property.id)}
-              >
+              <DropdownMenuItem className="text-red-600" onClick={onDelete}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Eliminar
               </DropdownMenuItem>

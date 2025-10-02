@@ -12,6 +12,10 @@ export function useProperties() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [availableAmenities, setAvailableAmenities] = useState<Amenity[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(
+    null
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Función para obtener propiedades
   const fetchProperties = useCallback(async () => {
@@ -73,32 +77,58 @@ export function useProperties() {
     }
   }, []);
 
-  // Función para eliminar propiedad
-  const deleteProperty = useCallback(
-    async (propertyId: number) => {
-      try {
-        const response = await fetch(
-          `http://localhost:3002/api/properties/${propertyId}`,
-          { method: "DELETE" }
-        );
+  // Función para abrir el modal de confirmación de eliminación
+  const requestDeleteProperty = useCallback((property: Property) => {
+    setPropertyToDelete(property);
+  }, []);
 
-        if (response.ok) {
-          toast({
-            title: "Propiedad eliminada",
-            description: "La propiedad se ha eliminado exitosamente",
-          });
-          fetchProperties();
+  // Función para cancelar la eliminación
+  const cancelDelete = useCallback(() => {
+    setPropertyToDelete(null);
+  }, []);
+
+  // Función para confirmar y ejecutar la eliminación
+  const confirmDeleteProperty = useCallback(async () => {
+    if (!propertyToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(
+        `http://localhost:3002/api/properties/${propertyToDelete.id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
         }
-      } catch (error) {
+      );
+
+      if (response.ok) {
         toast({
-          title: "Error",
-          description: "No se pudo eliminar la propiedad",
+          title: "✅ Propiedad eliminada",
+          description: "La propiedad se ha eliminado exitosamente",
+          duration: 5000,
+        });
+        setPropertyToDelete(null);
+        fetchProperties();
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "❌ Error",
+          description: errorData.message || "No se pudo eliminar la propiedad",
           variant: "destructive",
+          duration: 6000,
         });
       }
-    },
-    [toast, fetchProperties]
-  );
+    } catch (error) {
+      toast({
+        title: "❌ Error",
+        description: "Error de conexión. Verifica tu conexión a internet.",
+        variant: "destructive",
+        duration: 6000,
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [propertyToDelete, toast, fetchProperties]);
 
   // Propiedades filtradas
   const filteredProperties = properties.filter(
@@ -120,8 +150,12 @@ export function useProperties() {
     availableAmenities,
     searchTerm,
     filteredProperties,
+    propertyToDelete,
+    isDeleting,
     setSearchTerm,
     fetchProperties,
-    deleteProperty,
+    requestDeleteProperty,
+    confirmDeleteProperty,
+    cancelDelete,
   };
 }
