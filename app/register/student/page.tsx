@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext"; // Importa el hook
 import { RegionCommuneSelect } from "@/components/RegionCommuneSelect";
+import { api } from "@/lib/api";
 
 export default function StudentRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -158,16 +159,8 @@ export default function StudentRegisterPage() {
         formDataToSend.append("comunaName", selectedComunaName);
       }
 
-      const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
-        }/auth/students-register`,
-        {
-          method: "POST",
-          body: formDataToSend,
-          credentials: "include", // ✅ Para recibir cookies httpOnly
-        }
-      );
+      // Usar la instancia de API para hacer la petición
+      const response = await api.post("/api/auth/students-register", formDataToSend, true);
 
       if (response.ok) {
         const data = await response.json();
