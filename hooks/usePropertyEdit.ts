@@ -39,9 +39,6 @@ export function usePropertyEdit(property: Property | null) {
   // Cargar datos de la propiedad cuando cambie
   useEffect(() => {
     if (property) {
-      console.log("🏠 Cargando propiedad para edición:", property);
-      console.log("📝 propertyType recibido:", property.propertyType);
-
       setFormData({
         title: property.title || "",
         description: property.description || "",
@@ -59,11 +56,6 @@ export function usePropertyEdit(property: Property | null) {
         utilityBill: null,
         propertyImages: [],
       });
-
-      console.log(
-        "✅ FormData actualizado con propertyType:",
-        property.propertyType
-      );
 
       // Cargar imágenes existentes
       const images = property.images || [];

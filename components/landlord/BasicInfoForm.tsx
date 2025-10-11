@@ -67,9 +67,9 @@ export const BasicInfoForm = memo(function BasicInfoForm({
         <div>
           <Label htmlFor="propertyType">Tipo de propiedad *</Label>
           <Select
-            key={formData.propertyType || "empty"}
             value={formData.propertyType}
             onValueChange={handleSelectChange("propertyType")}
+            defaultValue={formData.propertyType}
           >
             <SelectTrigger className="border-sage/30 focus:border-sage focus:ring-sage/20">
               <SelectValue placeholder="Selecciona el tipo" />
