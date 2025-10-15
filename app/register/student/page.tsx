@@ -202,12 +202,10 @@ export default function StudentRegisterPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center space-x-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-sage to-sage/70 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-golden to-education rounded-xl flex items-center justify-center">
               <Home className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-neutral-800">
-              Code Room
-            </span>
+            <span className="text-2xl font-bold text-neutral-800">URoom</span>
           </Link>
           <div className="flex items-center justify-center space-x-2 mb-4">
             <GraduationCap className="h-8 w-8 text-sage" />

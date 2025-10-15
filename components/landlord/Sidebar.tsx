@@ -32,7 +32,7 @@ export const Sidebar = memo(function Sidebar({
             <div className="w-8 h-8 bg-gradient-to-br from-golden to-education rounded-lg flex items-center justify-center">
               <Home className="h-4 w-4 text-white" />
             </div>
-            <span className="font-semibold text-neutral-800">CodeRoom</span>
+            <span className="font-semibold text-neutral-800">URoom</span>
           </Link>
         </div>
 

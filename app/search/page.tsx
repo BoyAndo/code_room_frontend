@@ -205,12 +205,10 @@ export default function SearchPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-sage to-sage/70 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-golden to-education rounded-xl flex items-center justify-center">
                 <Home className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-neutral-800">
-                Code Room
-              </span>
+              <span className="text-xl font-bold text-neutral-800">URoom</span>
             </Link>
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="sm">

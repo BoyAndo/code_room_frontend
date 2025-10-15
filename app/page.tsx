@@ -63,15 +63,6 @@ export default function LandingPage() {
                     Comenzar Ahora
                   </Button>
                 </Link>
-                <Link href="/search">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-sage/30 text-sage hover:bg-warm px-8 py-4 text-lg bg-white w-full sm:w-auto"
-                  >
-                    Explorar Propiedades
-                  </Button>
-                </Link>
               </div>
 
               {/* Stats inline */}
@@ -152,7 +143,7 @@ export default function LandingPage() {
       <section className="py-20 px-4">
         <div className="container mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center text-neutral-800 mb-16">
-            ¿Por qué elegir Code Room?
+            ¿Por qué elegir URoom?
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <Card className="bg-white backdrop-blur-sm border-sage/15 hover:shadow-xl transition-all duration-300">

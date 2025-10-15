@@ -70,9 +70,7 @@ export default function LoginPage() {
             <div className="w-12 h-12 bg-gradient-to-br from-golden to-education rounded-xl flex items-center justify-center">
               <Home className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-neutral-800">
-              Code Room
-            </span>
+            <span className="text-2xl font-bold text-neutral-800">URoom</span>
           </Link>
           <h1 className="text-2xl font-bold text-neutral-800 mb-2">
             Iniciar Sesión

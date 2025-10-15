@@ -3,7 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
-  title: "Code Room",
+  title: "URoom",
   description: "Plataforma para estudiantes",
 };
 

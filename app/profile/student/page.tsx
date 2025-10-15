@@ -159,9 +159,7 @@ export default function StudentProfile() {
               <div className="w-10 h-10 bg-gradient-to-br from-golden to-education rounded-xl flex items-center justify-center">
                 <Home className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-neutral-800">
-                Code Room
-              </span>
+              <span className="text-xl font-bold text-neutral-800">URoom</span>
             </Link>
             <div className="flex items-center space-x-4">
               <Link href="/search">
