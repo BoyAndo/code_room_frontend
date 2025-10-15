@@ -69,6 +69,7 @@ export const BasicInfoForm = memo(function BasicInfoForm({
           <Select
             value={formData.propertyType}
             onValueChange={handleSelectChange("propertyType")}
+            defaultValue={formData.propertyType}
           >
             <SelectTrigger className="border-sage/30 focus:border-sage focus:ring-sage/20">
               <SelectValue placeholder="Selecciona el tipo" />
@@ -122,7 +123,7 @@ export const BasicInfoForm = memo(function BasicInfoForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="bedrooms">Dormitorios *</Label>
           <Input
@@ -145,17 +146,6 @@ export const BasicInfoForm = memo(function BasicInfoForm({
             value={formData.bathrooms}
             onChange={handleNumberInputChange("bathrooms")}
             className="border-sage/30 focus:border-sage focus:ring-sage/20"
-          />
-        </div>
-        <div>
-          <Label htmlFor="rules">Reglas de la propiedad</Label>
-          <Input
-            id="rules"
-            value={formData.rules}
-            onChange={handleInputChange("rules")}
-            placeholder="No se permiten fiestas"
-            className="border-sage/30 focus:border-sage focus:ring-sage/20"
-            autoComplete="off"
           />
         </div>
       </div>

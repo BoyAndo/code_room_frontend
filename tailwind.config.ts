@@ -48,7 +48,10 @@ const config: Config = {
         },
         // Elegant real estate colors inspired by Lioner design
         cream: "#f8f5f1", // Light beige background
-        sage: "#8b6f47", // Warm brown for primary elements
+        sage: {
+          DEFAULT: "#8b6f47", // Warm brown for primary elements
+          dark: "#6b5536", // Darker shade of sage
+        },
         education: "#d4af37", // Golden yellow for accents
         modern: "#6b5b73", // Muted purple-brown for secondary
         professional: "#a0846d", // Medium brown for borders
@@ -94,10 +97,20 @@ const config: Config = {
             height: "0",
           },
         },
+        shimmer: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        "pulse-slow": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.8" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        shimmer: "shimmer 2s infinite",
+        "pulse-slow": "pulse-slow 2s ease-in-out infinite",
       },
     },
   },

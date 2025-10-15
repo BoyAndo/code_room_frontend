@@ -14,14 +14,10 @@ const initialFormData: PropertyFormData = {
   bedrooms: 1,
   bathrooms: 1,
   squareMeters: "",
-  zipCode: "",
   regionName: "",
   comunaName: "",
   regionId: 1,
   comunaId: 1,
-  rules: "",
-  latitude: "",
-  longitude: "",
   amenities: [],
   utilityBill: null,
   propertyImages: [],
@@ -39,6 +35,11 @@ export function usePropertyForm() {
     null
   );
   const [imagesPreviews, setImagesPreviews] = useState<string[]>([]);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [creationStatus, setCreationStatus] = useState<
+    "loading" | "success" | "error" | null
+  >(null);
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
 
   // Handler para cambios en campos del formulario
   const handleFieldChange = useCallback(
@@ -163,6 +164,10 @@ export function usePropertyForm() {
       return false;
     }
 
+    setIsCreating(true);
+    setCreationStatus("loading");
+    setErrorMessages([]);
+
     try {
       const submitData = new FormData();
 
@@ -179,18 +184,11 @@ export function usePropertyForm() {
       submitData.append("comunaName", formData.comunaName);
       submitData.append("regionId", formData.regionId.toString());
       submitData.append("comunaId", formData.comunaId.toString());
-      submitData.append("zipCode", formData.zipCode || "");
       submitData.append("propertyType", formData.propertyType);
       submitData.append("bedrooms", formData.bedrooms.toString());
       submitData.append("bathrooms", formData.bathrooms.toString());
       submitData.append("squareMeters", formData.squareMeters || "");
       submitData.append("monthlyRent", formData.monthlyRent);
-      submitData.append("rules", formData.rules || "No se permiten fiestas");
-
-      // Coordenadas
-      if (formData.latitude) submitData.append("latitude", formData.latitude);
-      if (formData.longitude)
-        submitData.append("longitude", formData.longitude);
 
       // Amenidades - enviar como JSON string
       submitData.append("amenities", JSON.stringify(formData.amenities));
@@ -207,40 +205,47 @@ export function usePropertyForm() {
         body: submitData,
       });
 
+      const responseData = await response.json();
+
       if (response.ok) {
-        toast({
-          title: "¡Éxito!",
-          description: "Propiedad creada exitosamente",
-        });
-        resetForm();
+        setCreationStatus("success");
         return true;
       } else {
-        const errorData = await response.json();
-
-        let errorMessage = "No se pudo crear la propiedad";
-        if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
+        // Verificar si hay errores detallados de validación OCR
+        if (
+          responseData.errors &&
+          Array.isArray(responseData.errors) &&
+          responseData.errors.length > 0
+        ) {
+          setErrorMessages(responseData.errors);
+          setCreationStatus("error");
+        } else {
+          setErrorMessages([
+            responseData.message || "No se pudo crear la propiedad",
+          ]);
+          setCreationStatus("error");
         }
 
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
         return false;
       }
     } catch (error) {
       console.error("❌ Error de red:", error);
-      toast({
-        title: "Error",
-        description: "Error de conexión. Verifica tu conexión a internet.",
-        variant: "destructive",
-      });
+      setErrorMessages(["Error de conexión. Verifica tu conexión a internet."]);
+      setCreationStatus("error");
       return false;
     }
+    // NO cerramos el modal aquí, el usuario debe cerrarlo manualmente
   }, [user, formData, toast, resetForm]);
+
+  const closeModal = useCallback(() => {
+    setIsCreating(false);
+    setCreationStatus(null);
+    setErrorMessages([]);
+    // Si fue exitoso, limpiar el formulario
+    if (creationStatus === "success") {
+      resetForm();
+    }
+  }, [creationStatus, resetForm]);
 
   return {
     formData,
@@ -248,6 +253,9 @@ export function usePropertyForm() {
     selectedComunaId,
     utilityBillPreview,
     imagesPreviews,
+    isCreating,
+    creationStatus,
+    errorMessages,
     handleFieldChange,
     handleRegionChange,
     handleComunaChange,
@@ -256,5 +264,6 @@ export function usePropertyForm() {
     handleImagesChange,
     resetForm,
     createProperty,
+    closeModal,
   };
 }

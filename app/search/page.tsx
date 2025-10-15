@@ -77,7 +77,6 @@ interface Property {
   address: string;
   comuna: string;
   region: string;
-  zipCode: string;
   propertyType: string;
   bedrooms: number;
   bathrooms: number;
@@ -86,9 +85,6 @@ interface Property {
   isAvailable: boolean;
   utilityBillUrl: string;
   utilityBillValidated: boolean;
-  rules: string;
-  latitude: string;
-  longitude: string;
   createdAt: string;
   updatedAt: string;
   propertyImages: PropertyImage[];
@@ -515,11 +511,6 @@ export default function SearchPage() {
                               </span>
                               <span>📐 {property.squareMeters}m²</span>
                             </div>
-                            {property.rules && (
-                              <p className="text-xs text-neutral-500 mt-2 italic">
-                                📋 {property.rules}
-                              </p>
-                            )}
                           </div>
 
                           {/* Chat Messages */}

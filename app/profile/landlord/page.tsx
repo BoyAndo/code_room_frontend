@@ -14,18 +14,25 @@ import {
 } from "lucide-react";
 import { useAuth, isLandlord } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { Property } from "@/types/property";
 
 // Componentes personalizados
 import { Sidebar } from "@/components/landlord/Sidebar";
 import { PropertyCard } from "@/components/landlord/PropertyCard";
 import { BasicInfoForm } from "@/components/landlord/BasicInfoForm";
 import { LocationForm } from "@/components/landlord/LocationForm";
+import { LocationFormEdit } from "@/components/landlord/LocationFormEdit";
 import { AmenitiesForm } from "@/components/landlord/AmenitiesForm";
 import { FileUploadsForm } from "@/components/landlord/FileUploadsForm";
+import { FileUploadsFormEdit } from "@/components/landlord/FileUploadsFormEdit";
+import { PropertyCreationLoader } from "@/components/landlord/PropertyCreationLoader";
+import { PropertyUpdateLoader } from "@/components/landlord/PropertyUpdateLoader";
+import { DeletePropertyModal } from "@/components/landlord/DeletePropertyModal";
 
 // Hooks personalizados
 import { useProperties } from "@/hooks/useProperties";
 import { usePropertyForm } from "@/hooks/usePropertyForm";
+import { usePropertyEdit } from "@/hooks/usePropertyEdit";
 
 export default function LandlordDashboard() {
   const { user, logout } = useAuth();
@@ -33,6 +40,9 @@ export default function LandlordDashboard() {
 
   // Estados principales
   const [currentView, setCurrentView] = useState("dashboard");
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(
+    null
+  );
 
   // Hooks personalizados
   const {
@@ -40,9 +50,13 @@ export default function LandlordDashboard() {
     availableAmenities,
     searchTerm,
     filteredProperties,
+    propertyToDelete,
+    isDeleting,
     setSearchTerm,
     fetchProperties,
-    deleteProperty,
+    requestDeleteProperty,
+    confirmDeleteProperty,
+    cancelDelete,
   } = useProperties();
 
   const {
@@ -51,6 +65,9 @@ export default function LandlordDashboard() {
     selectedComunaId,
     utilityBillPreview,
     imagesPreviews,
+    isCreating,
+    creationStatus,
+    errorMessages,
     handleFieldChange,
     handleRegionChange,
     handleComunaChange,
@@ -58,8 +75,24 @@ export default function LandlordDashboard() {
     handleUtilityBillChange,
     handleImagesChange,
     resetForm,
+    closeModal,
     createProperty,
   } = usePropertyForm();
+
+  // Hook para editar propiedad
+  const {
+    formData: editFormData,
+    imagesPreviews: editImagesPreviews,
+    isUpdating,
+    updateStatus,
+    errorMessages: updateErrorMessages,
+    handleFieldChange: editHandleFieldChange,
+    handleAmenityToggle: editHandleAmenityToggle,
+    handleImagesChange: editHandleImagesChange,
+    handleRemoveImage: editHandleRemoveImage,
+    updateProperty,
+    closeModal: closeUpdateModal,
+  } = usePropertyEdit(selectedProperty);
 
   // Handlers
   const handleLogout = () => {
@@ -75,8 +108,27 @@ export default function LandlordDashboard() {
     }
   };
 
+  const handleEditProperty = (property: Property) => {
+    setSelectedProperty(property);
+    setCurrentView("edit-property");
+  };
+
+  const handleUpdateProperty = async () => {
+    const success = await updateProperty();
+    if (success) {
+      setCurrentView("dashboard");
+      setSelectedProperty(null);
+      fetchProperties();
+    }
+  };
+
   const handleCancelForm = () => {
     resetForm();
+    setCurrentView("dashboard");
+  };
+
+  const handleCancelEdit = () => {
+    setSelectedProperty(null);
     setCurrentView("dashboard");
   };
 
@@ -223,7 +275,8 @@ export default function LandlordDashboard() {
                       <PropertyCard
                         key={property.id}
                         property={property}
-                        onDelete={deleteProperty}
+                        onEdit={handleEditProperty}
+                        onDelete={() => requestDeleteProperty(property)}
                       />
                     ))}
                   </div>
@@ -291,6 +344,56 @@ export default function LandlordDashboard() {
             </div>
           )}
 
+          {/* Edit Property View */}
+          {currentView === "edit-property" && selectedProperty && (
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-lg border border-neutral-200 p-8">
+                <div className="mb-8">
+                  <h1 className="text-2xl font-bold text-neutral-800">
+                    Editar Propiedad
+                  </h1>
+                  <p className="text-neutral-600">
+                    Actualiza la información de tu propiedad
+                  </p>
+                </div>
+
+                <form className="space-y-8">
+                  <BasicInfoForm
+                    formData={editFormData}
+                    onFieldChange={editHandleFieldChange}
+                  />
+
+                  <LocationFormEdit formData={editFormData} />
+
+                  <AmenitiesForm
+                    amenities={availableAmenities}
+                    selectedAmenities={editFormData.amenities}
+                    onAmenityToggle={editHandleAmenityToggle}
+                  />
+
+                  <FileUploadsFormEdit
+                    propertyImages={editFormData.propertyImages}
+                    imagesPreviews={editImagesPreviews}
+                    onImagesChange={editHandleImagesChange}
+                    onRemoveImage={editHandleRemoveImage}
+                  />
+                </form>
+
+                <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-neutral-200">
+                  <Button variant="outline" onClick={handleCancelEdit}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleUpdateProperty}
+                    className="bg-sage hover:bg-sage/90 text-white"
+                  >
+                    Actualizar Propiedad
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Properties List View */}
           {currentView === "properties" && (
             <div className="space-y-6">
@@ -329,7 +432,8 @@ export default function LandlordDashboard() {
                   <PropertyCard
                     key={property.id}
                     property={property}
-                    onDelete={deleteProperty}
+                    onEdit={handleEditProperty}
+                    onDelete={() => requestDeleteProperty(property)}
                   />
                 ))}
               </div>
@@ -362,6 +466,32 @@ export default function LandlordDashboard() {
           )}
         </main>
       </div>
+
+      {/* Loaders */}
+      {isCreating && (
+        <PropertyCreationLoader
+          status={creationStatus || "loading"}
+          errorMessages={errorMessages}
+          onClose={closeModal}
+        />
+      )}
+      {isUpdating && (
+        <PropertyUpdateLoader
+          status={updateStatus || "loading"}
+          errorMessages={updateErrorMessages}
+          onClose={closeUpdateModal}
+        />
+      )}
+
+      {/* Modal de confirmación de eliminación */}
+      {propertyToDelete && (
+        <DeletePropertyModal
+          property={propertyToDelete}
+          isDeleting={isDeleting}
+          onConfirm={confirmDeleteProperty}
+          onCancel={cancelDelete}
+        />
+      )}
     </div>
   );
 }

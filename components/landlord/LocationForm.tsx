@@ -49,56 +49,14 @@ export const LocationForm = memo(function LocationForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <RegionCommuneSelect
-          selectedRegionId={selectedRegionId}
-          selectedComunaId={selectedComunaId}
-          onRegionChange={onRegionChange}
-          onComunaChange={onComunaChange}
-          required={true}
-          className="border-sage/30 focus:border-sage focus:ring-sage/20"
-        />
-        <div>
-          <Label htmlFor="zipCode">Código postal</Label>
-          <Input
-            id="zipCode"
-            value={formData.zipCode}
-            onChange={handleInputChange("zipCode")}
-            placeholder="1234567"
-            className="border-sage/30 focus:border-sage focus:ring-sage/20"
-            autoComplete="postal-code"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="latitude">Latitud (opcional)</Label>
-          <Input
-            id="latitude"
-            type="number"
-            step="any"
-            value={formData.latitude}
-            onChange={handleInputChange("latitude")}
-            placeholder="-33.4372"
-            className="border-sage/30 focus:border-sage focus:ring-sage/20"
-            autoComplete="off"
-          />
-        </div>
-        <div>
-          <Label htmlFor="longitude">Longitud (opcional)</Label>
-          <Input
-            id="longitude"
-            type="number"
-            step="any"
-            value={formData.longitude}
-            onChange={handleInputChange("longitude")}
-            placeholder="-70.6506"
-            className="border-sage/30 focus:border-sage focus:ring-sage/20"
-            autoComplete="off"
-          />
-        </div>
-      </div>
+      <RegionCommuneSelect
+        selectedRegionId={selectedRegionId}
+        selectedComunaId={selectedComunaId}
+        onRegionChange={onRegionChange}
+        onComunaChange={onComunaChange}
+        required={true}
+        className="border-sage/30 focus:border-sage focus:ring-sage/20"
+      />
     </div>
   );
 });
