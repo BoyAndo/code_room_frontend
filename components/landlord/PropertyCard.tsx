@@ -30,6 +30,12 @@ export const PropertyCard = memo(function PropertyCard({
   onEdit,
   onDelete,
 }: PropertyCardProps) {
+  const { address, comunaName, regionName } = property;
+
+  // Formatear la ubicación completa
+  const fullLocation = `${address}, ${comunaName || "Comuna"}, ${
+    regionName || "Región"
+  }`;
   return (
     <div
       key={property.id}
@@ -41,9 +47,13 @@ export const PropertyCard = memo(function PropertyCard({
             <h3 className="font-semibold text-neutral-800 mb-1">
               {property.title}
             </h3>
+            {/* 🔑 USAR LA UBICACIÓN COMPLETA */}
             <p className="text-sm text-neutral-600 flex items-center">
               <MapPin className="h-4 w-4 mr-1" />
+              {/* ✅ CORRECCIÓN: Mostrar ubicación completa */}
               {property.address}
+              {property.comunaName ? `, ${property.comunaName}` : ""}
+              {property.regionName ? `, ${property.regionName}` : ""}
             </p>
           </div>
           <DropdownMenu>
