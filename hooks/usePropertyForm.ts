@@ -16,8 +16,10 @@ const initialFormData: PropertyFormData = {
   squareMeters: "",
   regionName: "",
   comunaName: "",
-  regionId: 1,
-  comunaId: 1,
+  regionId: 0,
+  comunaId: 0,
+  latitude: null,
+  longitude: null,
   amenities: [],
   utilityBill: null,
   propertyImages: [],
@@ -29,8 +31,8 @@ export function usePropertyForm() {
 
   // Estados del formulario
   const [formData, setFormData] = useState<PropertyFormData>(initialFormData);
-  const [selectedRegionId, setSelectedRegionId] = useState<number>(1);
-  const [selectedComunaId, setSelectedComunaId] = useState<number>(1);
+  const [selectedRegionId, setSelectedRegionId] = useState<number>(0);
+  const [selectedComunaId, setSelectedComunaId] = useState<number>(0);
   const [utilityBillPreview, setUtilityBillPreview] = useState<string | null>(
     null
   );
@@ -52,17 +54,17 @@ export function usePropertyForm() {
   // Handler para cambios en región
   const handleRegionChange = useCallback(
     (regionId: number | null, regionName?: string | null) => {
-      const id = regionId || 1;
+      const id = regionId || 0;
       const name = regionName || "";
       setSelectedRegionId(id);
       setFormData((prev) => ({
         ...prev,
         regionId: id,
         regionName: name,
-        comunaId: 1,
+        comunaId: 0,
         comunaName: "",
       }));
-      setSelectedComunaId(1);
+      setSelectedComunaId(0);
     },
     []
   );
@@ -70,7 +72,7 @@ export function usePropertyForm() {
   // Handler para cambios en comuna
   const handleComunaChange = useCallback(
     (comunaId: number | null, comunaName?: string | null) => {
-      const id = comunaId || 1;
+      const id = comunaId || 0;
       const name = comunaName || "";
       setSelectedComunaId(id);
       setFormData((prev) => ({
@@ -124,8 +126,9 @@ export function usePropertyForm() {
     setFormData(initialFormData);
     setUtilityBillPreview(null);
     setImagesPreviews([]);
-    setSelectedRegionId(1);
-    setSelectedComunaId(1);
+    // 🔑 Corregido: Usar 0 para consistencia con initialFormData
+    setSelectedRegionId(0); 
+    setSelectedComunaId(0); 
   }, []);
 
   // Función para crear propiedad
@@ -190,25 +193,61 @@ export function usePropertyForm() {
       submitData.append("squareMeters", formData.squareMeters || "");
       submitData.append("monthlyRent", formData.monthlyRent);
 
+      // 🔑 CORRECCIÓN: Usar String() o as number para resolver el error de TypeScript
+      const { latitude, longitude } = formData;
+      if (latitude !== null && longitude !== null) {
+        // Opción 1 (Recomendada): Usar String() para forzar la conversión a string
+        submitData.append("latitude", String(latitude));
+        submitData.append("longitude", String(longitude));
+        
+        // Opción 2 (Alternativa): Usar type assertion (as number)
+        // submitData.append("latitude", (latitude as number).toString());
+        // submitData.append("longitude", (longitude as number).toString());
+      }
+
       // Amenidades - enviar como JSON string
       submitData.append("amenities", JSON.stringify(formData.amenities));
 
       // Archivos
-      submitData.append("utilityBill", formData.utilityBill);
+      // 🔑 Añadir as File para evitar posibles errores de tipo en el append
+      submitData.append("utilityBill", formData.utilityBill as File);
       formData.propertyImages.forEach((image) => {
         submitData.append("propertyImages", image);
       });
 
-      const response = await fetch("http://localhost:3002/api/properties", {
-        method: "POST",
-        credentials: "include", // Para enviar cookies de autenticación
-        body: submitData,
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_PROPERTIES_URL}/properties`,
+        {
+          method: "POST",
+          credentials:"include",
+          body: submitData, // Debe ser submitData
+        }
+      );
 
       const responseData = await response.json();
 
       if (response.ok) {
+        // 🔑 Paso 1.3 - Parte 2: Actualizar estado con coordenadas finales del Backend
+        const createdProperty: Property =
+          responseData.data || responseData.property;
+
+        if (
+          createdProperty &&
+          createdProperty.latitude &&
+          createdProperty.longitude
+        ) {
+          setFormData((prev) => ({
+            ...prev,
+            latitude: createdProperty.latitude as number,
+            longitude: createdProperty.longitude as number,
+          }));
+        }
+
         setCreationStatus("success");
+        toast({
+            title: "Éxito",
+            description: "Propiedad creada y pendiente de validación de documentos.",
+        });
         return true;
       } else {
         // Verificar si hay errores detallados de validación OCR
@@ -234,7 +273,6 @@ export function usePropertyForm() {
       setCreationStatus("error");
       return false;
     }
-    // NO cerramos el modal aquí, el usuario debe cerrarlo manualmente
   }, [user, formData, toast, resetForm]);
 
   const closeModal = useCallback(() => {

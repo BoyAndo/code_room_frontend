@@ -20,6 +20,10 @@ export interface Property {
   amenities?: Amenity[];
   createdAt: string;
   updatedAt: string;
+  latitude?: number;    // Para almacenar las coordenadas
+  longitude?: number;   // Para almacenar las coordenadas
+  regionName?: string;  // Asegurar que existe en la propiedad final
+  comunaName?: string;  // Asegurar que existe en la propiedad final
   landlordId: number;
 }
 
@@ -42,6 +46,8 @@ export interface PropertyFormData {
   comunaName: string;
   regionId: number;
   comunaId: number;
+  latitude?: number | null; 
+  longitude?: number | null;
   amenities: number[];
   utilityBill: File | null;
   propertyImages: File[];
