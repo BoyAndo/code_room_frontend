@@ -131,6 +131,10 @@ export default function SearchPage() {
   const fetchProperties = async () => {
     try {
       setLoading(true);
+      // Obtener el token del localStorage
+      const token = localStorage.getItem('token');
+      
+      console.log("Fetching properties...");
       const response = await fetch(
         "http://localhost:3002/api/properties/with-landlord",
         {
@@ -138,21 +142,32 @@ export default function SearchPage() {
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
+            Authorization: token ? `Bearer ${token}` : "", // Agregar el token si existe
           },
           credentials: "include",
         }
       );
+
+      console.log("Response status:", response.status);
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
-      const data = result.data.properties; // Nueva estructura anidada
-      console.log("Fetched properties:", data);
+      console.log("Raw API response:", result);
 
-      // Los datos ya vienen en el formato correcto de la interfaz Property
-      setProperties(data || []);
+      // Manejar la estructura de datos correctamente
+      const data = result.data?.properties || result.properties || result;
+      console.log("Processed properties data:", data);
+
+      if (Array.isArray(data)) {
+        setProperties(data);
+      } else {
+        console.error("Unexpected data structure:", data);
+        setProperties([]);
+      }
     } catch (error) {
       console.error("Error fetching properties:", error);
       setProperties([]);
@@ -429,9 +444,11 @@ export default function SearchPage() {
                     )}
                   </div>
 
-                  <Button className="w-full bg-golden hover:bg-education text-white mb-3 font-semibold">
-                    Ver más detalles
-                  </Button>
+                  <Link href={`/property/${property.id}`}>
+                    <Button className="w-full bg-golden hover:bg-education text-white mb-3 font-semibold">
+                      Ver más detalles
+                    </Button>
+                  </Link>
 
                   {/* Author Info */}
                   <div className="flex items-center justify-between pt-3 border-t border-sage/10">
