@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -101,6 +101,8 @@ interface Property {
   utilityBillValidated: boolean;
   createdAt: string;
   updatedAt: string;
+  latitude: number;
+  longitude: number;
   propertyImages: PropertyImage[];
   propertyAmenities: PropertyAmenity[];
   images: string[];
@@ -131,6 +133,7 @@ const getAmenityIcon = (iconName: string) => {
 
 // ⬅️ LISTA GRANDE DE CIUDADES (Añade todas las que necesites)
 const STATIC_CITIES = [
+  // Ciudades originales
   "Santiago",
   "Valparaíso",
   "Concepción",
@@ -144,7 +147,340 @@ const STATIC_CITIES = [
   "Iquique",
   "Chillán",
   "Punta Arenas",
-  // Agrega el resto de tus ciudades aquí
+  // Comunas agregadas de la BD
+  "Arica",
+  "Camarones",
+  "Putre",
+  "General Lagos",
+  "Alto Hospicio",
+  "Pozo Almonte",
+  "Camiña",
+  "Colchane",
+  "Huara",
+  "Pica",
+  "Mejillones",
+  "Sierra Gorda",
+  "Taltal",
+  "Calama",
+  "Ollagüe",
+  "San Pedro de Atacama",
+  "Tocopilla",
+  "María Elena",
+  "Copiapó",
+  "Caldera",
+  "Tierra Amarilla",
+  "Chañaral",
+  "Diego de Almagro",
+  "Vallenar",
+  "Alto del Carmen",
+  "Freirina",
+  "Huasco",
+  "Coquimbo",
+  "Andacollo",
+  "La Higuera",
+  "Paiguano",
+  "Vicuña",
+  "Illapel",
+  "Canela",
+  "Los Vilos",
+  "Salamanca",
+  "Ovalle",
+  "Combarbalá",
+  "Monte Patria",
+  "Punitaqui",
+  "Río Hurtado",
+  "Casablanca",
+  "Concón",
+  "Juan Fernández",
+  "Puchuncaví",
+  "Quintero",
+  "Isla de Pascua",
+  "Los Andes",
+  "Calle Larga",
+  "Rinconada",
+  "San Esteban",
+  "La Ligua",
+  "Cabildo",
+  "Papudo",
+  "Petorca",
+  "Zapallar",
+  "Quillota",
+  "Calera",
+  "Hijuelas",
+  "La Cruz",
+  "Nogales",
+  "San Antonio",
+  "Algarrobo",
+  "Cartagena",
+  "El Quisco",
+  "El Tabo",
+  "Santo Domingo",
+  "San Felipe",
+  "Catemu",
+  "Llaillay",
+  "Panquehue",
+  "Putaendo",
+  "Santa María",
+  "Quilpué",
+  "Limache",
+  "Olmué",
+  "Villa Alemana",
+  "Cerrillos",
+  "Cerro Navia",
+  "Conchalí",
+  "El Bosque",
+  "Estación Central",
+  "Huechuraba",
+  "Independencia",
+  "La Cisterna",
+  "La Florida",
+  "La Granja",
+  "La Pintana",
+  "La Reina",
+  "Las Condes",
+  "Lo Barnechea",
+  "Lo Espejo",
+  "Lo Prado",
+  "Macul",
+  "Maipú",
+  "Ñuñoa",
+  "Pedro Aguirre Cerda",
+  "Peñalolén",
+  "Providencia",
+  "Pudahuel",
+  "Quilicura",
+  "Quinta Normal",
+  "Recoleta",
+  "Renca",
+  "San Joaquín",
+  "San Miguel",
+  "San Ramón",
+  "Vitacura",
+  "Puente Alto",
+  "Pirque",
+  "San José de Maipo",
+  "Colina",
+  "Lampa",
+  "Tiltil",
+  "San Bernardo",
+  "Buin",
+  "Calera de Tango",
+  "Paine",
+  "Melipilla",
+  "Alhué",
+  "Curacaví",
+  "María Pinto",
+  "San Pedro",
+  "Talagante",
+  "El Monte",
+  "Isla de Maipo",
+  "Padre Hurtado",
+  "Peñaflor",
+  "Codegua",
+  "Coinco",
+  "Coltauco",
+  "Doñihue",
+  "Graneros",
+  "Las Cabras",
+  "Machalí",
+  "Malloa",
+  "Mostazal",
+  "Olivar",
+  "Peumo",
+  "Pichidegua",
+  "Quinta de Tilcoco",
+  "Rengo",
+  "Requínoa",
+  "San Vicente",
+  "Pichilemu",
+  "La Estrella",
+  "Litueche",
+  "Marchihue",
+  "Navidad",
+  "Paredones",
+  "San Fernando",
+  "Chépica",
+  "Chimbarongo",
+  "Lolol",
+  "Nancagua",
+  "Palmilla",
+  "Peralillo",
+  "Placilla",
+  "Pumanque",
+  "Santa Cruz",
+  "Constitución",
+  "Curepto",
+  "Empedrado",
+  "Maule",
+  "Pelarco",
+  "Pencahue",
+  "Río Claro",
+  "San Clemente",
+  "San Rafael",
+  "Cauquenes",
+  "Chanco",
+  "Pelluhue",
+  "Curicó",
+  "Hualañé",
+  "Licantén",
+  "Molina",
+  "Rauco",
+  "Romeral",
+  "Sagrada Familia",
+  "Teno",
+  "Vichuquén",
+  "Linares",
+  "Colbún",
+  "Longaví",
+  "Parral",
+  "Retiro",
+  "San Javier",
+  "Villa Alegre",
+  "Yerbas Buenas",
+  "Coronel",
+  "Chiguayante",
+  "Florida",
+  "Hualqui",
+  "Lota",
+  "Penco",
+  "San Pedro de la Paz",
+  "Santa Juana",
+  "Talcahuano",
+  "Tomé",
+  "Hualpén",
+  "Lebu",
+  "Arauco",
+  "Cañete",
+  "Contulmo",
+  "Curanilahue",
+  "Los Álamos",
+  "Tirúa",
+  "Los Ángeles",
+  "Antuco",
+  "Cabrero",
+  "Laja",
+  "Mulchén",
+  "Nacimiento",
+  "Negrete",
+  "Quilaco",
+  "Quilleco",
+  "San Rosendo",
+  "Santa Bárbara",
+  "Tucapel",
+  "Yumbel",
+  "Alto Biobío",
+  "Bulnes",
+  "Cobquecura",
+  "Coelemu",
+  "Coihueco",
+  "Chillán Viejo",
+  "El Carmen",
+  "Ninhue",
+  "Ñiquén",
+  "Pemuco",
+  "Pinto",
+  "Portezuelo",
+  "Quillón",
+  "Quirihue",
+  "Ránquil",
+  "San Carlos",
+  "San Fabián",
+  "San Ignacio",
+  "San Nicolás",
+  "Treguaco",
+  "Yungay",
+  "Carahue",
+  "Cunco",
+  "Curarrehue",
+  "Freire",
+  "Galvarino",
+  "Gorbea",
+  "Lautaro",
+  "Loncoche",
+  "Melipeuco",
+  "Nueva Imperial",
+  "Padre Las Casas",
+  "Perquenco",
+  "Pitrufquén",
+  "Pucón",
+  "Saavedra",
+  "Teodoro Schmidt",
+  "Toltén",
+  "Vilcún",
+  "Villarrica",
+  "Cholchol",
+  "Angol",
+  "Collipulli",
+  "Curacautín",
+  "Ercilla",
+  "Lonquimay",
+  "Los Sauces",
+  "Lumaco",
+  "Purén",
+  "Renaico",
+  "Traiguén",
+  "Victoria",
+  "Valdivia",
+  "Corral",
+  "Lanco",
+  "Los Lagos",
+  "Máfil",
+  "Mariquina",
+  "Paillaco",
+  "Panguipulli",
+  "La Unión",
+  "Futrono",
+  "Lago Ranco",
+  "Río Bueno",
+  "Calbuco",
+  "Cochamó",
+  "Fresia",
+  "Frutillar",
+  "Los Muermos",
+  "Llanquihue",
+  "Maullín",
+  "Puerto Varas",
+  "Castro",
+  "Ancud",
+  "Chonchi",
+  "Curaco de Vélez",
+  "Dalcahue",
+  "Puqueldón",
+  "Queilén",
+  "Quellón",
+  "Quemchi",
+  "Quinchao",
+  "Osorno",
+  "Puerto Octay",
+  "Purranque",
+  "Puyehue",
+  "Río Negro",
+  "San Juan de la Costa",
+  "San Pablo",
+  "Chaitén",
+  "Futaleufú",
+  "Hualaihué",
+  "Palena",
+  "Coyhaique",
+  "Lago Verde",
+  "Aysén",
+  "Cisnes",
+  "Guaitecas",
+  "Cochrane",
+  "O'Higgins",
+  "Tortel",
+  "Chile Chico",
+  "Río Ibáñez",
+  "Laguna Blanca",
+  "Río Verde",
+  "San Gregorio",
+  "Cabo de Hornos",
+  "Antártica",
+  "Porvenir",
+  "Primavera",
+  "Timaukel",
+  "Natales",
+  "Torres del Paine",
 ];
 
 export default function SearchPage() {
@@ -155,6 +491,7 @@ export default function SearchPage() {
   const [propertyType, setPropertyType] = useState("");
   const [priceRange, setPriceRange] = useState("");
   const [sortOrder, setSortOrder] = useState<string>("recent"); // Inicializa con 'recent' para evitar el error
+  const [searchTrigger, setSearchTrigger] = useState(0);
   // ...
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(
     null
@@ -167,7 +504,6 @@ export default function SearchPage() {
   // En page.tsx (dentro de la función SearchPage)
 
   // En page.tsx (Junto a tus otras funciones)
-
   const clearFilters = () => {
     // 1. Reiniciar los estados a su valor inicial (vacío)
     setSelectedCity("");
@@ -177,7 +513,7 @@ export default function SearchPage() {
   };
 
   // Función para obtener propiedades (¡CORREGIDA y UNIFICADA!)
-  const fetchProperties = async () => {
+  const fetchProperties = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -199,10 +535,17 @@ export default function SearchPage() {
       }
 
       if (sortOrder && sortOrder !== "recent") {
-        // Si el valor no es "recent", lo procesamos
-        const [sortBy, order] = sortOrder.split("-");
-        params.append("sortBy", sortBy);
-        params.append("order", order);
+        let [sortBy, order] = sortOrder.split("-");
+
+        // LÓGICA DE COMPENSACIÓN
+        if (sortOrder === "monthlyRent-desc-asc") {
+          params.append("sortBy", "monthlyRent");
+          params.append("order", "asc"); // Envía 'asc'
+        } else {
+          // Para 'Más Recientes' y 'Mayor a Menor'
+          params.append("sortBy", sortBy);
+          params.append("order", order);
+        }
       }
 
       const queryString = params.toString();
@@ -244,7 +587,7 @@ export default function SearchPage() {
       const data = result.data?.properties || result.properties || result;
 
       // Actualizar estado de filtros activos
-      setFiltersActive(!!queryString);
+      // setFiltersActive(!!queryString);
 
       if (Array.isArray(data)) {
         setProperties(data);
@@ -258,21 +601,19 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sortOrder, searchTrigger]); // ⬅️ ¡LISTA DE DEPENDENCIAS VITAL!
   // ⬅️ FIN DE LA FUNCIÓN fetchProperties
 
-  // ⬅️ HOOK useEffect
-  // En page.tsx (Reemplazar el useEffect existente)
-
   useEffect(() => {
-    fetchProperties();
-  }, []); // ⬅️ SIN dependencias de filtro
-
-  // Hook para determinar si hay filtros activos (Mantiene esta parte separada)
-  useEffect(() => {
+    // ⬅️ ESTE BLOQUE SIEMPRE SE EJECUTA cuando los filtros cambian
     const filtersActive = !!selectedCity || !!propertyType || !!priceRange;
     setFiltersActive(filtersActive);
-  }, [selectedCity, propertyType, priceRange]);
+  }, [selectedCity, propertyType, priceRange]); // ⬅️ SOLO LOS FILTROS DEMORADOS
+
+  useEffect(() => {
+    // Tarea: Disparar la búsqueda
+    fetchProperties();
+  }, [fetchProperties]); // ⬅️ Mantenemos solo fetchProperties como dependencia
 
   const handleSendMessage = () => {
     if (chatMessage.trim() && selectedProperty) {
@@ -428,7 +769,8 @@ export default function SearchPage() {
 
               <div className="flex gap-4 border-t pt-4 border-sage/10">
                 <Button
-                  onClick={fetchProperties}
+                  // ⬅️ Debe usar la forma funcional (prev => prev + 1)
+                  onClick={() => setSearchTrigger((prev) => prev + 1)}
                   variant="destructive"
                   className="bg-golden hover:bg-education text-white flex-1 font-semibold"
                 >
@@ -438,15 +780,11 @@ export default function SearchPage() {
 
                 {/* BOTÓN PARA ELIMINAR FILTROS (solo se muestra si hay filtros activos) */}
                 {filtersActive && (
-                  // En page.tsx (Tu componente Button)
-
                   <Button
+                    // Código del botón "Eliminar Filtros"
                     onClick={() => {
-                      clearFilters(); // 1. Limpia los estados
-
-                      setTimeout(() => {
-                        fetchProperties();
-                      }, 50); // 50ms es suficiente para que React termine el commit
+                      clearFilters(); // Resetea los estados de los filtros
+                      setSearchTrigger((prev) => prev + 1); // ⬅️ DISPARA LA NUEVA BÚSQUEDA
                     }}
                     variant="destructive"
                     className="bg-red-500 hover:bg-red-600 text-white font-semibold"
@@ -464,31 +802,38 @@ export default function SearchPage() {
           <h2 className="text-xl font-semibold text-neutral-800">
             {properties?.length || 0} propiedades encontradas
           </h2>
-     
+
           <Select
-            value={sortOrder}
             onValueChange={(value) => {
               setSortOrder(value);
-
-              // Mantenemos el setTimeout para evitar que la selección visual se borre
-              setTimeout(() => {
-                fetchProperties();
-              }, 50);
+              // El useEffect con dependencias llamará a fetchProperties automáticamente.
             }}
+            // ✅ AGREGA EL VALOR DE VINCULACIÓN: ¡Olvidaste pasar el estado 'value' al Select!
+            value={sortOrder}
           >
+            {/* 🛑 CORRECCIÓN: SOLO UN SelectTrigger */}
             <SelectTrigger className="w-48 border-sage/30">
-              <SelectValue placeholder="Ordenar por" />
+              <SelectValue asChild>
+                <span className="truncate">
+                  {sortOrder === "recent"
+                    ? "Más Recientes"
+                    : sortOrder === "monthlyRent-desc-asc"
+                    ? "Precio: Menor a Mayor"
+                    : sortOrder === "monthlyRent-desc"
+                    ? "Precio: Mayor a Menor"
+                    : "Ordenar por"}
+                </span>
+              </SelectValue>
             </SelectTrigger>
+
             <SelectContent>
               <SelectItem value="recent">Más Recientes</SelectItem>
 
-              {/* 🔑 CORRECCIÓN: Menor a Mayor debe usar 'monthlyRent-asc' */}
-              <SelectItem value="monthlyRent-desc">
+              <SelectItem value="monthlyRent-desc-asc">
                 Precio: Menor a Mayor
               </SelectItem>
 
-              {/* 🔑 CORRECCIÓN: Mayor a Menor debe usar 'monthlyRent-desc' */}
-              <SelectItem value="monthlyRent-asc">
+              <SelectItem value="monthlyRent-desc">
                 Precio: Mayor a Menor
               </SelectItem>
             </SelectContent>
@@ -566,9 +911,23 @@ export default function SearchPage() {
                     {property.description}
                   </p>
 
+                  {/* Ubicación: Ahora muestra la dirección completa y es el enlace al mapa */}
                   <div className="flex items-center text-sm text-neutral-600 mb-3">
                     <MapPin className="h-4 w-4 mr-1" />
-                    {property.comuna}, {property.region}
+
+                    <Link
+                      // El enlace a Google Maps sigue utilizando las coordenadas para la precisión.
+                      href={`http://maps.google.com/maps?q=${property.latitude},${property.longitude}`}
+                      target="_blank" // Abrir en una nueva pestaña
+                      rel="noopener noreferrer"
+                      // Estilos para que el texto de la dirección se vea como un enlace
+                      className="hover:underline hover:text-education transition duration-150"
+                    >
+                      {/* 🛑 AHORA MUESTRA LA DIRECCIÓN COMPLETA REGISTRADA 🛑 */}
+                      <span className="truncate max-w-[200px] sm:max-w-none block">
+                        {property.address}
+                      </span>
+                    </Link>
                   </div>
 
                   <div className="flex items-center justify-between text-sm text-neutral-600 mb-3">
@@ -634,9 +993,6 @@ export default function SearchPage() {
                           </span>
                           <CheckCircle2 className="h-4 w-4 text-blue-500" />
                         </div>
-                        <span className="text-xs text-neutral-500">
-                          Responde en ~2 horas
-                        </span>
                       </div>
                     </div>
 
@@ -752,10 +1108,6 @@ export default function SearchPage() {
                             >
                               <Send className="h-4 w-4" />
                             </Button>
-                          </div>
-
-                          <div className="text-xs text-neutral-500 text-center">
-                            Responde en ~2 horas
                           </div>
                         </div>
                       </DialogContent>
