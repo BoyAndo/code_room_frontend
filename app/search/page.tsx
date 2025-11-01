@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
@@ -19,7 +18,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+// En page.tsx (Alrededor de la línea 24)
+
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command"; // ⬅️ NUEVOS IMPORTS
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"; // ⬅️ NUEVOS IMPORTS
 import {
   Search,
   MapPin,
@@ -115,75 +129,150 @@ const getAmenityIcon = (iconName: string) => {
   return iconMap[iconName] || iconMap.default;
 };
 
+// ⬅️ LISTA GRANDE DE CIUDADES (Añade todas las que necesites)
+const STATIC_CITIES = [
+  "Santiago",
+  "Valparaíso",
+  "Concepción",
+  "Temuco",
+  "Viña del Mar",
+  "Antofagasta",
+  "La Serena",
+  "Rancagua",
+  "Talca",
+  "Puerto Montt",
+  "Iquique",
+  "Chillán",
+  "Punta Arenas",
+  // Agrega el resto de tus ciudades aquí
+];
+
 export default function SearchPage() {
+  // ⬅️ INICIO DE TODOS LOS ESTADOS
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [priceRange, setPriceRange] = useState("");
+  const [sortOrder, setSortOrder] = useState<string>("recent"); // Inicializa con 'recent' para evitar el error
+  // ...
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(
     null
   );
   const [chatMessage, setChatMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [filtersActive, setFiltersActive] = useState(false);
+  const [isCityOpen, setIsCityOpen] = useState(false);
 
+  // En page.tsx (dentro de la función SearchPage)
+
+  // En page.tsx (Junto a tus otras funciones)
+
+  const clearFilters = () => {
+    // 1. Reiniciar los estados a su valor inicial (vacío)
+    setSelectedCity("");
+    setPropertyType("");
+    setPriceRange("");
+    setSortOrder("recent"); // Incluir el ordenamiento
+  };
+
+  // Función para obtener propiedades (¡CORREGIDA y UNIFICADA!)
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      // Obtener el token del localStorage
-      const token = localStorage.getItem('token');
-      
-      console.log("Fetching properties...");
-      const response = await fetch(
-        "http://localhost:3002/api/properties/with-landlord",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: token ? `Bearer ${token}` : "", // Agregar el token si existe
-          },
-          credentials: "include",
-        }
-      );
+      const token = localStorage.getItem("token");
 
-      console.log("Response status:", response.status);
-      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
+      // 1. CONSTRUIR LOS FILTROS DE CONSULTA (query parameters)
+      const params = new URLSearchParams();
+
+      if (selectedCity) {
+        params.append("comuna", selectedCity);
+      }
+      if (propertyType) {
+        params.append("propertyType", propertyType);
+      }
+      // En page.tsx (dentro de fetchProperties)
+      if (priceRange) {
+        const [min, max] = priceRange.split("-"); // min='300000', max='500000'
+        params.append("minRent", min);
+        params.append("maxRent", max);
+      }
+
+      if (sortOrder && sortOrder !== "recent") {
+        // Si el valor no es "recent", lo procesamos
+        const [sortBy, order] = sortOrder.split("-");
+        params.append("sortBy", sortBy);
+        params.append("order", order);
+      }
+
+      const queryString = params.toString();
+      const url = `http://localhost:3002/api/properties/with-landlord${
+        queryString ? `?${queryString}` : ""
+      }`;
+
+      console.log("Fetching properties from URL:", url);
+
+      // 2. CONSTRUIR LOS HEADERS DE FORMA DINÁMICA
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`; // ⬅️ SOLO SE AÑADE SI HAY TOKEN
+      }
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: headers, // ⬅️ USAMOS LOS HEADERS DINÁMICOS
+        credentials: "include",
+      });
+
+      // 3. CONTINUAR CON EL MANEJO DE LA RESPUESTA
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.error(
+          `Error al obtener propiedades: HTTP status ${response.status}`
+        );
+        // 🔑 CORRECCIÓN: Eliminamos el 'throw' para evitar que la app se rompa
+        setProperties([]); // Aseguramos que la lista se vacíe en caso de error
+        return; // Salimos de la función sin intentar parsear el JSON
       }
 
       const result = await response.json();
-      console.log("Raw API response:", result);
-
-      // Manejar la estructura de datos correctamente
+      // ...
       const data = result.data?.properties || result.properties || result;
-      console.log("Processed properties data:", data);
+
+      // Actualizar estado de filtros activos
+      setFiltersActive(!!queryString);
 
       if (Array.isArray(data)) {
         setProperties(data);
       } else {
-        console.error("Unexpected data structure:", data);
         setProperties([]);
       }
     } catch (error) {
       console.error("Error fetching properties:", error);
+      // Solo lanzamos un error si no es un 401, ya que para la búsqueda es esperado si no hay login
       setProperties([]);
     } finally {
       setLoading(false);
     }
   };
+  // ⬅️ FIN DE LA FUNCIÓN fetchProperties
+
+  // ⬅️ HOOK useEffect
+  // En page.tsx (Reemplazar el useEffect existente)
 
   useEffect(() => {
     fetchProperties();
-  }, []);
+  }, []); // ⬅️ SIN dependencias de filtro
 
-  // useEffect separado para monitorear cambios en properties
+  // Hook para determinar si hay filtros activos (Mantiene esta parte separada)
   useEffect(() => {
-    console.log("Properties state updated:", properties);
-  }, [properties]);
+    const filtersActive = !!selectedCity || !!propertyType || !!priceRange;
+    setFiltersActive(filtersActive);
+  }, [selectedCity, propertyType, priceRange]);
 
   const handleSendMessage = () => {
     if (chatMessage.trim() && selectedProperty) {
@@ -244,89 +333,167 @@ export default function SearchPage() {
 
           <Card className="bg-white backdrop-blur-sm border-sage/20 shadow-lg">
             <CardContent className="p-6">
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500" />
-                  <Input
-                    placeholder="Buscar por ciudad..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 border-sage/30 focus:border-sage focus:ring-sage/20"
-                  />
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                {/* 1. FILTRO DE CIUDAD (COMBOBOX CON BÚSQUEDA) */}
+                <div>
+                  <label className="text-sm font-medium text-neutral-700 block mb-2">
+                    Filtrar por ciudad
+                  </label>
+                  <Popover open={isCityOpen} onOpenChange={setIsCityOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isCityOpen}
+                        className="w-full justify-between border-sage/30 focus:border-sage focus:ring-sage/20"
+                      >
+                        {selectedCity
+                          ? STATIC_CITIES.find(
+                              (city) => city.toLowerCase() === selectedCity
+                            )
+                          : "Selecciona ciudad..."}
+                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar ciudad..." />
+                        <CommandList>
+                          <CommandEmpty>
+                            No se encontraron ciudades.
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {STATIC_CITIES.map((city) => (
+                              <CommandItem
+                                key={city}
+                                value={city}
+                                onSelect={(currentValue) => {
+                                  setSelectedCity(
+                                    currentValue === selectedCity
+                                      ? ""
+                                      : currentValue.toLowerCase()
+                                  );
+                                  setIsCityOpen(false);
+                                }}
+                              >
+                                {city}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
-                <Select value={selectedCity} onValueChange={setSelectedCity}>
-                  <SelectTrigger className="border-sage/30 focus:border-sage focus:ring-sage/20">
-                    <SelectValue placeholder="Ciudad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="santiago">Santiago</SelectItem>
-                    <SelectItem value="valparaiso">Valparaíso</SelectItem>
-                    <SelectItem value="concepcion">Concepción</SelectItem>
-                    <SelectItem value="temuco">Temuco</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* 2. FILTRO DE TIPO DE PROPIEDAD */}
+                <div>
+                  <label className="text-sm font-medium text-neutral-700 block mb-2">
+                    Filtrar por tipo (casa, pieza o depto)
+                  </label>
+                  <Select value={propertyType} onValueChange={setPropertyType}>
+                    <SelectTrigger className="border-sage/30 focus:border-sage focus:ring-sage/20">
+                      <SelectValue placeholder="Tipo de propiedad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="room">Habitación</SelectItem>
+                      <SelectItem value="apartment">Departamento</SelectItem>
+                      <SelectItem value="house">Casa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                <Select value={propertyType} onValueChange={setPropertyType}>
-                  <SelectTrigger className="border-sage/30 focus:border-sage focus:ring-sage/20">
-                    <SelectValue placeholder="Tipo de propiedad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="room">Habitación</SelectItem>
-                    <SelectItem value="apartment">Departamento</SelectItem>
-                    <SelectItem value="house">Casa</SelectItem>
-                    <SelectItem value="studio">Studio</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={priceRange} onValueChange={setPriceRange}>
-                  <SelectTrigger className="border-sage/30 focus:border-sage focus:ring-sage/20">
-                    <SelectValue placeholder="Rango de precio" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0-300">$0 - $300</SelectItem>
-                    <SelectItem value="300-500">$300 - $500</SelectItem>
-                    <SelectItem value="500-700">$500 - $700</SelectItem>
-                    <SelectItem value="700+">$700+</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* 3. FILTRO DE RANGO DE PRECIO */}
+                <div>
+                  <label className="text-sm font-medium text-neutral-700 block mb-2">
+                    Filtrar por rango de precio
+                  </label>
+                  <Select value={priceRange} onValueChange={setPriceRange}>
+                    <SelectTrigger className="border-sage/30 focus:border-sage focus:ring-sage/20">
+                      <SelectValue placeholder="Rango de precio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0-300000">$0 - $300.000</SelectItem>
+                      <SelectItem value="300000-500000">
+                        $300.000 - $500.000
+                      </SelectItem>
+                      <SelectItem value="500000-700000">
+                        $500.000 - $700.000
+                      </SelectItem>
+                      <SelectItem value="700000-2000000">$700.000+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="flex gap-4">
-                <Button className="bg-golden hover:bg-education text-white flex-1 font-semibold">
-                  <Search className="h-4 w-4 mr-2" />
-                  Buscar
-                </Button>
+              <div className="flex gap-4 border-t pt-4 border-sage/10">
                 <Button
-                  variant="outline"
-                  className="border-sage/30 text-sage hover:bg-warm bg-white"
+                  onClick={fetchProperties}
+                  variant="destructive"
+                  className="bg-golden hover:bg-education text-white flex-1 font-semibold"
                 >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filtros
+                  <Search className="h-4 w-4 mr-2" />
+                  Aplicar Filtros
                 </Button>
+
+                {/* BOTÓN PARA ELIMINAR FILTROS (solo se muestra si hay filtros activos) */}
+                {filtersActive && (
+                  // En page.tsx (Tu componente Button)
+
+                  <Button
+                    onClick={() => {
+                      clearFilters(); // 1. Limpia los estados
+
+                      setTimeout(() => {
+                        fetchProperties();
+                      }, 50); // 50ms es suficiente para que React termine el commit
+                    }}
+                    variant="destructive"
+                    className="bg-red-500 hover:bg-red-600 text-white font-semibold"
+                  >
+                    <Filter className="h-4 w-4 mr-2" />
+                    Eliminar Filtros
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Results */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-neutral-800">
             {properties?.length || 0} propiedades encontradas
           </h2>
-          <Select defaultValue="relevance">
+     
+          <Select
+            value={sortOrder}
+            onValueChange={(value) => {
+              setSortOrder(value);
+
+              // Mantenemos el setTimeout para evitar que la selección visual se borre
+              setTimeout(() => {
+                fetchProperties();
+              }, 50);
+            }}
+          >
             <SelectTrigger className="w-48 border-sage/30">
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="relevance">Relevancia</SelectItem>
-              <SelectItem value="price-low">Precio: Menor a mayor</SelectItem>
-              <SelectItem value="price-high">Precio: Mayor a menor</SelectItem>
-              <SelectItem value="rating">Mejor calificación</SelectItem>
+              <SelectItem value="recent">Más Recientes</SelectItem>
+
+              {/* 🔑 CORRECCIÓN: Menor a Mayor debe usar 'monthlyRent-asc' */}
+              <SelectItem value="monthlyRent-desc">
+                Precio: Menor a Mayor
+              </SelectItem>
+
+              {/* 🔑 CORRECCIÓN: Mayor a Menor debe usar 'monthlyRent-desc' */}
+              <SelectItem value="monthlyRent-asc">
+                Precio: Mayor a Menor
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
-
         {/* Properties Grid */}
         {loading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -599,16 +766,6 @@ export default function SearchPage() {
             ))}
           </div>
         )}
-
-        {/* Load More */}
-        <div className="text-center mt-8">
-          <Button
-            variant="outline"
-            className="border-sage/30 text-sage hover:bg-warm bg-white"
-          >
-            Cargar más propiedades
-          </Button>
-        </div>
       </div>
     </div>
   );
