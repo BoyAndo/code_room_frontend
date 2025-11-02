@@ -305,7 +305,11 @@ export default function LandlordDashboard() {
                   />
 
                   <LocationForm
-                    formData={formData}
+                    formData={{
+                      ...formData,
+                      latitude: formData.latitude ?? null,
+                      longitude: formData.longitude ?? null,
+                    }}
                     selectedRegionId={selectedRegionId}
                     selectedComunaId={selectedComunaId}
                     onFieldChange={handleFieldChange}
