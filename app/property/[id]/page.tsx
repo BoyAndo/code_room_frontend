@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useAuth, isLandlord } from "@/contexts/AuthContext";
+import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -72,10 +74,13 @@ interface Property {
   images: string[];
   amenities: Amenity[];
   landlord: Landlord;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export default function PropertyPage() {
   const params = useParams();
+  const { user } = useAuth();
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -86,18 +91,15 @@ export default function PropertyPage() {
     const fetchProperty = async () => {
       try {
         setLoading(true);
-        // Obtener el token del localStorage
-        const token = localStorage.getItem('token');
-        
         console.log("Fetching property details for ID:", params.id);
+        const API_URL = process.env.NEXT_PUBLIC_API_PROPERTIES_URL || "http://localhost:3002/api";
         const response = await fetch(
-          `http://localhost:3002/api/properties/${params.id}/with-landlord`,
+          `${API_URL}/properties/${params.id}/with-landlord`,
           {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
               Accept: "application/json",
-              Authorization: token ? `Bearer ${token}` : "", // Agregar el token si existe
             },
             credentials: "include",
           }
@@ -334,11 +336,36 @@ export default function PropertyPage() {
                       key={amenity.id}
                       className="flex items-center space-x-2 p-2 bg-cream/20 rounded-lg"
                     >
-                      <span className="text-sage">{amenity.icon}</span>
                       <span className="text-neutral-700">{amenity.name}</span>
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Map */}
+              <div className="mt-6">
+                <h2 className="text-lg font-semibold text-neutral-800 mb-2">
+                  Ubicación
+                </h2>
+                <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}>
+                  <GoogleMap
+                    mapContainerStyle={{ width: "100%", height: "300px", borderRadius: "8px" }}
+                    center={property.latitude && property.longitude ? 
+                      { lat: property.latitude, lng: property.longitude } : 
+                      { lat: -33.447487, lng: -70.673676 }}
+                    zoom={15}
+                  >
+                    {property.latitude && property.longitude && (
+                      <Marker
+                        position={{ lat: property.latitude, lng: property.longitude }}
+                        title={property.address}
+                        icon={{
+                          url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+                        }}
+                      />
+                    )}
+                  </GoogleMap>
+                </LoadScript>
               </div>
             </div>
           </div>
@@ -371,14 +398,15 @@ export default function PropertyPage() {
 
               {/* Contact Buttons */}
               <div className="space-y-3">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="w-full bg-golden hover:bg-education text-white font-semibold">
-                      <MessageCircle className="h-5 w-5 mr-2" />
-                      Contactar propietario
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
+                {(!user || !isLandlord(user)) && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full bg-golden hover:bg-education text-white font-semibold">
+                        <MessageCircle className="h-5 w-5 mr-2" />
+                        Contactar propietario
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
                     <DialogHeader>
                       <DialogTitle className="flex items-center space-x-2">
                         <Image
@@ -481,8 +509,9 @@ export default function PropertyPage() {
                         Responde en ~2 horas
                       </div>
                     </div>
-                  </DialogContent>
-                </Dialog>
+                    </DialogContent>
+                  </Dialog>
+                )}
 
                 <Button
                   variant="outline"

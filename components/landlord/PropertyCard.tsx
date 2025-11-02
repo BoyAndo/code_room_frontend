@@ -18,6 +18,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { memo } from "react";
+import { useRouter } from "next/navigation";
 
 interface PropertyCardProps {
   property: Property;
@@ -31,6 +32,7 @@ export const PropertyCard = memo(function PropertyCard({
   onDelete,
 }: PropertyCardProps) {
   const { address, comunaName, regionName } = property;
+  const router = useRouter();
 
   // Formatear la ubicación completa
   const fullLocation = `${address}, ${comunaName || "Comuna"}, ${
@@ -63,7 +65,7 @@ export const PropertyCard = memo(function PropertyCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push(`/property/${property.id}`)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalles
               </DropdownMenuItem>

@@ -77,15 +77,7 @@ export const Sidebar = memo(function Sidebar({
 
         {/* Footer */}
         <div className="p-4 border-t border-neutral-200 space-y-2">
-          <Link href="/" className="w-full">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-neutral-600"
-            >
-              <ArrowLeft className="mr-3 h-4 w-4" />
-              Volver al inicio
-            </Button>
-          </Link>
+          {/* Se removió el botón "Volver al inicio" */}
           <Button
             variant="ghost"
             onClick={onLogout}
