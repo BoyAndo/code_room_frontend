@@ -29,11 +29,11 @@ type User = Student | Landlord;
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
-  login: () => void | Promise<void>;
-  logout: () => void | Promise<void>;
+  login: () => Promise<boolean>;
+  logout: () => Promise<void>;
   updateUser: (updatedUser: User) => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,84 +42,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Al cargar la app, obtener el usuario autenticado desde el backend
-    const fetchUser = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/auth/me`, {
-          credentials: "include",
-        });
-
-        // ✅ Verificar si la respuesta es exitosa (200-299)
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.user) {
-            setUser(data.user);
-          } else {
-            setUser(null);
-          }
-        } else {
-          // 401/403 es normal cuando no hay sesión activa
-          setUser(null);
-        }
-      } catch (error) {
-        // Error de red u otro error
-        setUser(null);
-      }
-    };
-    fetchUser();
-  }, []);
-
-  // Actualiza el usuario desde el backend tras login exitoso
-  const login = async () => {
+  const checkAuth = async () => {
     try {
+      console.log("Verificando autenticación...");
       const res = await fetch(`${API_BASE_URL}/auth/me`, {
-        method: "GET",
         credentials: "include",
       });
 
       if (res.ok) {
         const data = await res.json();
+        console.log("Datos del usuario:", data);
+        
         if (data.success && data.user) {
           setUser(data.user);
-        } else {
-          setUser(null);
+          return true;
         }
-      } else {
-        setUser(null);
       }
-    } catch (error) {
-      console.error("Error fetching user:", error);
       setUser(null);
+      return false;
+    } catch (error) {
+      console.error("Error verificando autenticación:", error);
+      setUser(null);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Verificar autenticación al montar el componente
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const login = async () => {
+    setIsLoading(true);
+    try {
+      const success = await checkAuth();
+      if (success) {
+        console.log("Login exitoso");
+        return true;
+      }
+      console.log("Login fallido");
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = async () => {
-    // Puedes agregar un endpoint /auth/logout en el backend para borrar la cookie
-    await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
-    setUser(null);
+    setIsLoading(true);
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+      setUser(null);
+    } catch (error) {
+      console.error("Error en logout:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateUser = (updatedUser: User) => {
     setUser(updatedUser);
   };
 
+  const value = {
+    user,
+    login,
+    logout,
+    updateUser,
+    isAuthenticated: !!user,
+    isLoading
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token: null,
-        login,
-        logout,
-        updateUser,
-        isAuthenticated: !!user,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

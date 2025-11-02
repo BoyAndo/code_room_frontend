@@ -22,10 +22,15 @@ export function useProperties() {
     if (!user) return;
 
     try {
+      const API_URL = process.env.NEXT_PUBLIC_API_PROPERTIES_URL || "http://localhost:3002/api";
       const response = await fetch(
-        "http://localhost:3002/api/properties/my-properties",
+        `${API_URL}/properties/my-properties`,
         {
-          credentials: "include", // Para enviar cookies de autenticación
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
         }
       );
 
@@ -52,8 +57,16 @@ export function useProperties() {
   // Función para obtener amenidades
   const fetchAmenities = useCallback(async () => {
     try {
+      const API_URL = process.env.NEXT_PUBLIC_API_PROPERTIES_URL || "http://localhost:3002/api";
       const response = await fetch(
-        "http://localhost:3002/api/properties/amenities"
+        `${API_URL}/properties/amenities`,
+        {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          }
+        }
       );
 
       if (response.ok) {
@@ -93,11 +106,16 @@ export function useProperties() {
 
     setIsDeleting(true);
     try {
+      const API_URL = process.env.NEXT_PUBLIC_API_PROPERTIES_URL || "http://localhost:3002/api";
       const response = await fetch(
-        `http://localhost:3002/api/properties/${propertyToDelete.id}`,
+        `${API_URL}/properties/${propertyToDelete.id}`,
         {
           method: "DELETE",
           credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
         }
       );
 

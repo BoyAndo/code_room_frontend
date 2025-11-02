@@ -30,6 +30,7 @@ export default function LoginPage() {
     setError("");
 
     try {
+      console.log("Iniciando proceso de login...");
       const response = await fetch("http://localhost:3001/auth/login", {
         method: "POST",
         body: JSON.stringify({
@@ -37,30 +38,35 @@ export default function LoginPage() {
           password: formData.password,
         }),
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // ✅ Para recibir cookies httpOnly
+        credentials: "include",
       });
 
       if (response.ok) {
-        await login();
-        // La redirección se maneja en el useEffect de abajo
+        console.log("Login exitoso en el servidor, actualizando estado...");
+        const success = await login();
+        if (success) {
+          console.log("Estado de autenticación actualizado correctamente");
+          // La redirección se maneja en el AuthGuard
+        } else {
+          setError("Error al obtener los datos del usuario");
+        }
       } else {
         const errorData = await response.json();
         setError(errorData.message || "Error en el login");
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error en login:", error);
       setError("Error de conexión. Verifica que el servidor esté corriendo");
     } finally {
       setLoading(false);
     }
   };
 
-  // Redirige automáticamente cuando el usuario se actualiza tras login
   useEffect(() => {
     if (user) {
-      router.push("/profile");
+      console.log("Usuario autenticado detectado:", user);
     }
-  }, [user, router]);
+  }, [user]);
   return (
     <div className="min-h-screen code-room-subtle-pattern flex items-center justify-center p-4">
       <div className="w-full max-w-md">
