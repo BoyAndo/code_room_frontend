@@ -21,6 +21,8 @@ interface Landlord {
   landlordEmail: string;
   landlordName: string;
   landlordCarnetUrl: string;
+  landlordDocumentUrl?: string;
+  phone?: string;
   profilePhotoUrl?: string;
   role: string;
 }

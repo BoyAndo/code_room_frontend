@@ -9,6 +9,7 @@ import {
   Building2,
   LogOut,
   ArrowLeft,
+  User,
 } from "lucide-react";
 import { memo } from "react";
 
@@ -72,6 +73,18 @@ export const Sidebar = memo(function Sidebar({
           >
             <Plus className="mr-3 h-4 w-4" />
             Nueva Propiedad
+          </button>
+
+          <button
+            onClick={() => onViewChange("profile")}
+            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              currentView === "profile"
+                ? "bg-sage/10 text-sage"
+                : "text-neutral-600 hover:bg-neutral-100"
+            }`}
+          >
+            <User className="mr-3 h-4 w-4" />
+            Mi Perfil
           </button>
         </nav>
 

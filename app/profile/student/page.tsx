@@ -80,26 +80,48 @@ export default function StudentProfile() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log("File selected:", file.name, file.type, file.size);
+
     try {
       setIsUploading(true);
       const formData = new FormData();
       formData.append("photo", file);
 
-      const response = await fetch("/api/students/profile-photo", {
+      const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
+      console.log("Uploading to:", `${API_URL}/profile/student/photo`);
+      
+      const response = await fetch(`${API_URL}/profile/student/photo`, {
         method: "POST",
         body: formData,
         credentials: "include",
       });
 
-      if (!response.ok) throw new Error("Error al subir la foto");
+      console.log("Response status:", response.status);
+      console.log("Response URL:", response.url);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error("Error al subir la foto");
+      }
 
       const data = await response.json();
+      
+      // Actualizar el usuario en el contexto con la nueva foto
+      if (data.success && isStudent(user)) {
+        const updatedUser = {
+          ...user,
+          profilePhotoUrl: data.data.profilePhotoUrl,
+        };
+        updateUser(updatedUser);
+      }
 
       toast({
         title: "Foto actualizada",
         description: "Tu foto de perfil ha sido actualizada exitosamente.",
       });
     } catch (error) {
+      console.error("Error al actualizar foto:", error);
       toast({
         title: "Error",
         description: "No se pudo actualizar la foto de perfil.",
@@ -201,16 +223,20 @@ export default function StudentProfile() {
                       onChange={handlePhotoChange}
                       className="hidden"
                     />
-                    <label htmlFor="photo-upload" className="cursor-pointer">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs border-sage/30 text-sage hover:bg-sage/10"
-                        disabled={isUploading}
-                      >
-                        {isUploading ? "Subiendo..." : "Cambiar foto"}
-                      </Button>
-                    </label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-xs border-sage/30 text-sage hover:bg-sage/10"
+                      disabled={isUploading}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        console.log("Button clicked!");
+                        document.getElementById('photo-upload')?.click();
+                      }}
+                    >
+                      {isUploading ? "Subiendo..." : "Cambiar foto"}
+                    </Button>
                   </div>
                 </div>
                 <div className="flex-1">
