@@ -17,9 +17,12 @@ import {
   Bookmark,
   Building2,
   MessageCircle,
+  Trash2,
 } from "lucide-react";
 import { useAuth, isStudent } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { DeleteAccountDialog } from "@/components/DeleteAccountDialog";
+import { useRouter } from "next/navigation";
 
 interface ProfileData {
   name: string;
@@ -31,8 +34,11 @@ interface ProfileData {
 export const StudentProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const { user, updateUser } = useAuth();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { user, updateUser, logout } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const [profileData, setProfileData] = useState<ProfileData>({
@@ -121,6 +127,43 @@ export const StudentProfile = () => {
       });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeleting(true);
+      
+      const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
+      const response = await fetch(`${API_URL}/user/student`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al eliminar la cuenta");
+      }
+
+      const data = await response.json();
+
+      toast({
+        title: "Cuenta eliminada",
+        description: "Tu cuenta ha sido eliminada exitosamente.",
+      });
+
+      // Hacer logout y redirigir
+      await logout();
+      router.push("/");
+    } catch (error) {
+      console.error("Error al eliminar cuenta:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la cuenta.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -367,6 +410,41 @@ export const StudentProfile = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Danger Zone - Delete Account */}
+      <Card className="bg-white backdrop-blur-sm border-red-200 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-red-600 flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            Zona Peligrosa
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <p className="text-sm text-neutral-600">
+              Esta acción es permanente e irreversible. Se eliminarán todos tus
+              datos, preferencias guardadas y actividad en la plataforma.
+            </p>
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteDialog(true)}
+              className="w-full md:w-auto"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Eliminar Cuenta
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Delete Account Confirmation Dialog */}
+      <DeleteAccountDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDeleteAccount}
+        userType="student"
+        isDeleting={isDeleting}
+      />
     </div>
   );
 };
