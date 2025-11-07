@@ -16,9 +16,12 @@ import {
   Building2,
   Phone,
   DollarSign,
+  Trash2,
 } from "lucide-react";
 import { useAuth, isLandlord } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { DeleteAccountDialog } from "@/components/DeleteAccountDialog";
 
 interface ProfileData {
   name: string;
@@ -30,8 +33,11 @@ interface ProfileData {
 export const LandlordProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const { user, updateUser } = useAuth();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { user, updateUser, logout } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const [profileData, setProfileData] = useState<ProfileData>({
@@ -116,6 +122,47 @@ export const LandlordProfile = () => {
       });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeleting(true);
+      const API_URL =
+        process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
+
+      const response = await fetch(`${API_URL}/user/landlord`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al eliminar la cuenta");
+      }
+
+      const data = await response.json();
+
+      toast({
+        title: "Cuenta eliminada",
+        description: "Tu cuenta ha sido eliminada exitosamente.",
+      });
+
+      // Cerrar sesión y redirigir
+      logout();
+      router.push("/");
+    } catch (error) {
+      console.error("Error al eliminar cuenta:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la cuenta. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -369,6 +416,42 @@ export const LandlordProfile = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Danger Zone - Delete Account */}
+      <Card className="bg-white backdrop-blur-sm border-red-200 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-red-600 flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            Zona Peligrosa
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <p className="text-sm text-neutral-600">
+              Esta acción es permanente e irreversible. Se eliminarán todos tus
+              datos, propiedades publicadas, mensajes y toda tu actividad en la
+              plataforma.
+            </p>
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteDialog(true)}
+              className="w-full md:w-auto"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Eliminar Cuenta
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Delete Account Confirmation Dialog */}
+      <DeleteAccountDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDeleteAccount}
+        userType="landlord"
+        isDeleting={isDeleting}
+      />
     </div>
   );
 };
