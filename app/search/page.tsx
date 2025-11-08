@@ -51,6 +51,24 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
+// 🛑 INICIO: SETUP DE PUSHER CLIENT 🛑
+// DEBES instalar: npm install pusher-js
+// Luego, asegúrate de que 'pusherClient' se inicialice y esté disponible.
+// Una forma común es hacerlo globalmente o importarlo desde un archivo de configuración.
+
+// IMPORT PUSHER-JS (Añade esta línea si no la tienes)
+// import PusherClient from 'pusher-js';
+
+// INICIALIZACIÓN GLOBAL (Si no tienes un archivo dedicado para esto, puedes hacerlo aquí)
+// const pusherClient = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+//   cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+//   authEndpoint: '/api/pusher/auth', // Si usas canales privados
+// });
+
+// Para que el código compile, asumiré una variable global para PusherClient
+declare const pusherClient: any;
+// 🛑 FIN: SETUP DE PUSHER CLIENT 🛑
+
 // Definir tipos para las propiedades
 interface Amenity {
   id: number;
@@ -82,6 +100,27 @@ interface Landlord {
   id: number;
   landlordName: string;
 }
+
+// 🛑 INICIO: INTERFACES DE AUTENTICACIÓN PARA EL ESTADO 'user' 🛑
+export interface StudentPayload {
+  id: number;
+  studentRut: string;
+  studentEmail: string;
+  studentName: string;
+  studentCollege: string;
+  role: "student";
+}
+
+export interface LandlordPayload {
+  id: number;
+  landlordRut: string;
+  landlordEmail: string;
+  landlordName: string;
+  role: "landlord";
+}
+
+export type LoggedInUser = StudentPayload | LandlordPayload;
+// 🛑 FIN: INTERFACES DE AUTENTICACIÓN 🛑
 
 interface Property {
   id: number;
@@ -498,10 +537,14 @@ export default function SearchPage() {
   );
   const [chatMessage, setChatMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  // const [chatMessage, setChatMessage] = useState("");
+  // const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  // const [chatRoomId, setChatRoomId] = useState<string | null>(null);
   const [filtersActive, setFiltersActive] = useState(false);
   const [isCityOpen, setIsCityOpen] = useState(false);
 
-  // En page.tsx (dentro de la función SearchPage)
+  // 🛑 NUEVO ESTADO: Usuario logueado (Para Pusher y lógica de chat)
+  const [user, setUser] = useState<LoggedInUser | null>(null);
 
   // En page.tsx (Junto a tus otras funciones)
   const clearFilters = () => {
@@ -604,6 +647,118 @@ export default function SearchPage() {
   }, [sortOrder, searchTrigger]); // ⬅️ ¡LISTA DE DEPENDENCIAS VITAL!
   // ⬅️ FIN DE LA FUNCIÓN fetchProperties
 
+  // 🛑 INICIO: FUNCIÓN PARA CARGAR EL HISTORIAL DE CHAT (PERSISTENCIA) 🛑
+  const fetchChatHistory = useCallback(
+    async (propertyToLoad: Property) => {
+      // 1. Identificar al estudiante (user) y al propietario (recipient)
+      const studentId = user?.id; // El usuario logueado es el estudiante
+      const landlordId = propertyToLoad.landlordId; // El propietario es el destinatario
+
+      if (!studentId || !propertyToLoad) {
+        // DEBUG: Si ves este error, el usuario no ha cargado (problema asíncrono).
+        console.error(
+          "DEBUG: Carga de historial detenida. El usuario (estudiante) no está cargado o la propiedad es nula."
+        );
+        setChatMessages([]);
+        return;
+      }
+
+      try {
+        // 2. CONSTRUCCIÓN DE LA URL CORREGIDA y EXPLÍCITA:
+        // Envía el studentId y el landlordId para que el backend busque la conversación completa.
+        const url = `/api/chat/history?propertyId=${propertyToLoad.id}&landlordId=${landlordId}&studentId=${studentId}`;
+
+        // DEBUG: Si ves este log, la función se ejecutó y la petición debería aparecer en Network.
+        console.log("DEBUG: Se inicia la petición de historial con URL:", url);
+
+        const historyResponse = await fetch(url, {
+          method: "GET",
+          credentials: "include", // Incluye la cookie de autenticación
+        });
+
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json();
+          const formattedMessages: any[] = historyData.messages
+            .map((msg: any) => ({
+              id: msg.id,
+              text: msg.content,
+              // Determina si el mensaje es del usuario logueado (el estudiante)
+              sender: msg.sender_id === Number(studentId) ? "user" : "other",
+              timestamp: new Date(msg.created_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              created_at: msg.created_at, // Para ordenar
+            }))
+            .sort(
+              (a: any, b: any) =>
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime()
+            ); // Asegurar orden ascendente
+
+          setChatMessages(formattedMessages);
+        } else {
+          console.error(
+            `Fallo al cargar el historial (Status: ${historyResponse.status})`,
+            await historyResponse.text() // Usar .text() para ver el cuerpo del error
+          );
+          setChatMessages([]);
+        }
+      } catch (error) {
+        console.error("Error de red al cargar el historial:", error);
+        setChatMessages([]);
+      }
+    },
+    [user]
+  ); // Dependencia del usuario logueado
+  // 🛑 FIN: FUNCIÓN PARA CARGAR EL HISTORIAL DE CHAT 🛑
+
+  // En page.tsx (donde estaba tu handleSendMessage)
+
+  const handleSendMessage = async () => {
+    // 💡 IMPORTANTE: Haz la función ASÍNCRONA
+    if (chatMessage.trim() && selectedProperty) {
+      const messageContent = chatMessage.trim();
+
+      // 1. Mensaje optimista (se muestra inmediatamente en la UI)
+      const newMessage = {
+        id: Date.now(),
+        text: messageContent,
+        sender: "user",
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      // Añadir el mensaje inmediatamente a la UI
+      setChatMessages([...chatMessages, newMessage]);
+      setChatMessage(""); // Limpiar el input
+
+      // 2. Llamada a la API de envío
+      try {
+        const response = await fetch("/api/chat/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // Incluir la cookie authToken
+          body: JSON.stringify({
+            recipientId: selectedProperty.landlordId,
+            propertyId: selectedProperty.id,
+            content: messageContent,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error("Fallo al enviar el mensaje:", await response.json());
+          // 💡 OPCIONAL: Implementar lógica de rollback (ej: eliminar el mensaje optimista si falla)
+        }
+        // El mensaje se guardó y Pusher lo disparará para los suscriptores.
+        // El PusherClient en tu otro useEffect lo recibirá y lo añadirá al estado.
+      } catch (error) {
+        console.error("Error de red al enviar el mensaje:", error);
+        // 💡 OPCIONAL: Implementar lógica de rollback
+      }
+    }
+  };
+
   useEffect(() => {
     // ⬅️ ESTE BLOQUE SIEMPRE SE EJECUTA cuando los filtros cambian
     const filtersActive = !!selectedCity || !!propertyType || !!priceRange;
@@ -615,29 +770,117 @@ export default function SearchPage() {
     fetchProperties();
   }, [fetchProperties]); // ⬅️ Mantenemos solo fetchProperties como dependencia
 
-  const handleSendMessage = () => {
-    if (chatMessage.trim() && selectedProperty) {
-      const newMessage = {
-        id: Date.now(),
-        text: chatMessage,
-        sender: "user",
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setChatMessages([...chatMessages, newMessage]);
-      setChatMessage("");
+  // En el useEffect de carga del usuario (Línea 750 aprox.)
+  // 🛑 INICIO: EFECTO PARA CARGAR DATOS DEL USUARIO LOGUEADO 🛑
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const response = await fetch("http://localhost:3001/auth/me", {
+          method: "GET",
+          credentials: "include",
+        });
 
-      // Simular respuesta automática del propietario
-      setTimeout(() => {
-        const autoReply = {
-          id: Date.now() + 1,
-          text: "¡Hola! Gracias por tu interés en la propiedad. ¿Te gustaría agendar una visita?",
-          sender: "owner",
-          timestamp: new Date().toLocaleTimeString(),
-        };
-        setChatMessages((prev) => [...prev, autoReply]);
-      }, 2000);
+        if (response.ok) {
+          const responseData = await response.json();
+
+          // 💡 ASUMIMOS que el objeto de usuario REAL está en responseData.user
+          // Si responseData tiene la forma { success: true, user: { id: 1, ... } }
+          const userData = responseData.user || responseData; // Intenta obtener .user o usa el objeto completo
+
+          if (userData && userData.id) {
+            // 🚨 LOG DE ÉXITO CORREGIDO 🚨
+            console.log("DEBUG AUTH: ✅ Usuario cargado con ID:", userData.id);
+            setUser(userData as LoggedInUser);
+          } else {
+            console.error(
+              "DEBUG AUTH: ❌ Usuario cargado, pero ID no encontrado en el payload."
+            );
+            setUser(null);
+          }
+        } else {
+          // 🚨 LOG DE FALLO DE RESPUESTA 🚨
+          console.error(
+            "DEBUG AUTH: ❌ Respuesta de auth fallida (4xx/5xx). Status:",
+            response.status
+          );
+          setUser(null);
+        }
+      } catch (error) {
+        // 🚨 LOG DE ERROR DE RED 🚨
+        console.error(
+          "DEBUG AUTH: 🛑 Error de red al cargar el usuario:",
+          error
+        );
+        setUser(null);
+      }
+    };
+
+    loadUser();
+  }, []);
+
+  // 🛑 INICIO: EFECTO PARA LA SUSCRIPCIÓN EN TIEMPO REAL CON PUSHER 🛑
+  useEffect(() => {
+    // 🛑 Advertencia: Si pusherClient no está inicializado, esta línea fallará.
+    // Solo continuar si tenemos usuario, propiedad seleccionada, y Pusher está disponible.
+    if (
+      !selectedProperty ||
+      !user ||
+      typeof (window as any).pusherClient === "undefined"
+    )
+      return;
+
+    const senderId = user.id;
+    const recipientId = selectedProperty.landlordId;
+    const propertyId = selectedProperty.id;
+
+    // DEBE COINCIDIR CON LA FÓRMULA DEL BACKEND
+    const chatRoomId = `private-chat-prop-${propertyId}-${senderId}-${recipientId}`;
+
+    // Acceder a la instancia global (o importada)
+    const pusherClient = (window as any).pusherClient;
+    const channel = pusherClient.subscribe(chatRoomId);
+
+    const handleNewMessage = (data: any) => {
+      const newMessage = {
+        id: data.id,
+        text: data.content,
+        sender: data.sender_id === Number(senderId) ? "user" : "other",
+        timestamp: new Date(data.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+      // Añadir el nuevo mensaje
+      setChatMessages((prev) => [...prev, newMessage]);
+    };
+
+    channel.bind("message-sent", handleNewMessage);
+
+    // Función de limpieza
+    return () => {
+      channel.unbind("message-sent", handleNewMessage);
+      pusherClient.unsubscribe(chatRoomId);
+    };
+  }, [selectedProperty, user]);
+  // 🛑 FIN: EFECTO PARA LA SUSCRIPCIÓN EN TIEMPO REAL CON PUSHER 🛑
+
+  // 🛑 NUEVO: EFECTO PARA CARGAR EL HISTORIAL DE CHAT CUANDO EL USUARIO Y LA PROPIEDAD ESTÁN LISTOS 🛑
+  useEffect(() => {
+    // 1. Validar que tenemos todo lo necesario para llamar a la API
+    if (!selectedProperty || !user) {
+      // Esto es correcto y detiene la ejecución de forma segura.
+      return;
     }
-  };
+
+    // Si llegamos aquí, user y selectedProperty tienen valor.
+    console.log(
+      "DEBUG: 🟢 Ambos (Usuario y Propiedad) están listos. Cargando historial..."
+    );
+
+    // 2. Llamar a fetchChatHistory.
+    fetchChatHistory(selectedProperty);
+  }, [selectedProperty, user, fetchChatHistory]);
+  // 🛑 FIN NUEVO useEffect 🛑
 
   return (
     <div className="min-h-screen code-room-subtle-pattern">
@@ -997,16 +1240,18 @@ export default function SearchPage() {
                     </div>
 
                     <Dialog>
-                      <DialogTrigger asChild>
+                      <DialogTrigger asChild disabled={!user}>
                         <Button
                           size="sm"
                           className="bg-golden hover:bg-education text-white font-semibold"
                           onClick={() => {
+                            console.log("Usuario actual al abrir chat:", user);
+                            // 1. Solo establecer la propiedad seleccionada.
                             setSelectedProperty(property);
-                            setChatMessages([]);
+                            // 💡 El historial se cargará automáticamente en el nuevo useEffect.
                           }}
                         >
-                          <MessageCircle className="h-4 w-4 mr-1" />
+                          <MessageCircle className="h-4 w-4 mr-2" />
                           Chat
                         </Button>
                       </DialogTrigger>

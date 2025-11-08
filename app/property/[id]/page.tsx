@@ -107,7 +107,7 @@ export default function PropertyPage() {
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [chatMessage, setChatMessage] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]); // Usamos la interfaz ChatMessage
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatRoomId, setChatRoomId] = useState<string | null>(null);
 
   // --- Efecto 1: Carga de la Propiedad ---
@@ -179,11 +179,12 @@ export default function PropertyPage() {
     setChatRoomId(currentRoomId);
 
     // --- 1. Cargar Historial ---
+    // PropertyPage.tsx - Dentro de useEffect 2
+
     const fetchChatHistory = async () => {
       try {
-        // Enviar el propertyId y el ID del otro participante (landlordId)
         const historyResponse = await fetch(
-          `/api/chat/history?propertyId=${property.id}&recipientId=${property.landlordId}`,
+          `/api/chat/history?propertyId=${property.id}&otherUserId=${property.landlordId}`,
           {
             method: "GET",
             credentials: "include",
@@ -196,7 +197,6 @@ export default function PropertyPage() {
             (msg: any) => ({
               id: msg.id,
               text: msg.content,
-              // Determinar si el mensaje fue enviado por el usuario logueado
               sender: msg.sender_id === Number(user.id) ? "user" : "other",
               timestamp: new Date(msg.created_at).toLocaleTimeString([], {
                 hour: "2-digit",
@@ -206,15 +206,20 @@ export default function PropertyPage() {
           );
           setChatMessages(formattedMessages);
         } else {
+          // 💡 MODIFICACIÓN: Si falla la carga (ej: 401 por JWT), aseguramos que el estado quede vacío.
+          setChatMessages([]);
           console.error(
-            "Fallo al cargar el historial:",
-            await historyResponse.json()
+            "Fallo al cargar el historial. Código:",
+            historyResponse.status,
+            await historyResponse.text() // Muestra la respuesta de error (e.g., "No autorizado")
           );
         }
       } catch (error) {
         console.error("Error de red al cargar el historial:", error);
+        setChatMessages([]); // Limpieza en caso de error de red.
       }
     };
+    // ...
 
     fetchChatHistory();
 
