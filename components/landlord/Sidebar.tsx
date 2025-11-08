@@ -8,22 +8,60 @@ import {
   Plus,
   Building2,
   LogOut,
-  ArrowLeft,
   User,
+  MessageSquareText, // 💡 Nuevo ícono para Chat
 } from "lucide-react";
 import { memo } from "react";
 
+// 💡 Interfaz actualizada para incluir el contador de mensajes no leídos
 interface SidebarProps {
   currentView: string;
   onViewChange: (view: string) => void;
   onLogout: () => void;
+  unreadMessagesCount: number; // 💡 Nuevo prop para el contador de notificaciones
 }
 
 export const Sidebar = memo(function Sidebar({
   currentView,
   onViewChange,
   onLogout,
+  unreadMessagesCount, // 💡 Desestructurar el nuevo prop
 }: SidebarProps) {
+  // 💡 Definición de los ítems de navegación con el nuevo de Mensajes
+  const navItems = [
+    {
+      name: "Dashboard",
+      view: "dashboard",
+      icon: TrendingUp,
+      badge: 0,
+    },
+    {
+      name: "Mis Propiedades",
+      view: "properties",
+      icon: Building2,
+      badge: 0,
+    },
+    {
+      name: "Nueva Propiedad",
+      view: "create-property",
+      icon: Plus,
+      badge: 0,
+    },
+    // 💡 Nuevo ítem de navegación para Chat/Mensajes
+    {
+      name: "Mensajes",
+      view: "chat",
+      icon: MessageSquareText,
+      badge: unreadMessagesCount, // Usar el contador de mensajes no leídos
+    },
+    {
+      name: "Mi Perfil",
+      view: "profile",
+      icon: User,
+      badge: 0,
+    },
+  ];
+
   return (
     <div className="fixed inset-y-0 left-0 w-64 bg-white border-r border-neutral-200 z-40">
       <div className="flex flex-col h-full">
@@ -39,58 +77,35 @@ export const Sidebar = memo(function Sidebar({
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
-          <button
-            onClick={() => onViewChange("dashboard")}
-            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === "dashboard"
-                ? "bg-sage/10 text-sage"
-                : "text-neutral-600 hover:bg-neutral-100"
-            }`}
-          >
-            <TrendingUp className="mr-3 h-4 w-4" />
-            Dashboard
-          </button>
+          {/* Mapeo de ítems de navegación, incluyendo el nuevo de Mensajes */}
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.view}
+                onClick={() => onViewChange(item.view)}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  currentView === item.view
+                    ? "bg-sage/10 text-sage"
+                    : "text-neutral-600 hover:bg-neutral-100"
+                }`}
+              >
+                <Icon className="mr-3 h-4 w-4" />
+                {item.name}
 
-          <button
-            onClick={() => onViewChange("properties")}
-            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === "properties"
-                ? "bg-sage/10 text-sage"
-                : "text-neutral-600 hover:bg-neutral-100"
-            }`}
-          >
-            <Building2 className="mr-3 h-4 w-4" />
-            Mis Propiedades
-          </button>
-
-          <button
-            onClick={() => onViewChange("create-property")}
-            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === "create-property"
-                ? "bg-sage/10 text-sage"
-                : "text-neutral-600 hover:bg-neutral-100"
-            }`}
-          >
-            <Plus className="mr-3 h-4 w-4" />
-            Nueva Propiedad
-          </button>
-
-          <button
-            onClick={() => onViewChange("profile")}
-            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === "profile"
-                ? "bg-sage/10 text-sage"
-                : "text-neutral-600 hover:bg-neutral-100"
-            }`}
-          >
-            <User className="mr-3 h-4 w-4" />
-            Mi Perfil
-          </button>
+                {/* 💡 Lógica del Badge de Notificación */}
+                {item.badge > 0 && (
+                  <span className="ml-auto bg-golden text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Footer */}
         <div className="p-4 border-t border-neutral-200 space-y-2">
-          {/* Se removió el botón "Volver al inicio" */}
           <Button
             variant="ghost"
             onClick={onLogout}

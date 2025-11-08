@@ -1,3 +1,4 @@
+// LandlordDashboard.tsx
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,13 +19,50 @@ import { useProperties } from "@/hooks/useProperties";
 import { usePropertyForm } from "@/hooks/usePropertyForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Building2, TrendingUp, DollarSign } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Building2,
+  TrendingUp,
+  DollarSign,
+  MessageSquareText, // 💡 CHAT/NOTIFICACIÓN
+} from "lucide-react";
+
+// 💡 Componente de chat simulado (deberías crear el real: ChatView)
+const ChatView = () => (
+  <div className="bg-white p-8 rounded-lg border border-neutral-200">
+    <h1 className="text-2xl font-bold text-neutral-800 mb-4">
+      💬 Mensajes y Chat
+    </h1>
+    <p className="text-neutral-600 mb-6">
+      Administra tus conversaciones con los interesados en tus propiedades. Aquí
+      verías la lista de chats.
+    </p>
+    <div className="space-y-4">
+      {/* Simulación de lista de chats */}
+      <div className="p-4 border rounded-lg hover:bg-neutral-50 cursor-pointer">
+        <p className="font-semibold">Juan Pérez - Propiedad ID 101</p>
+        <p className="text-sm text-neutral-500">
+          Último mensaje: ¿Cuándo podemos agendar una visita?
+        </p>
+      </div>
+      <div className="p-4 border rounded-lg hover:bg-neutral-50 cursor-pointer">
+        <p className="font-semibold">María López - Propiedad ID 105</p>
+        <p className="text-sm text-sage">¡Tienes un mensaje no leído! ✨</p>
+      </div>
+    </div>
+  </div>
+);
 
 export default function LandlordDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentView = searchParams.get("view") || "dashboard";
+  const SidebarComponent: any = Sidebar;
+
+  // 💡 CHAT/NOTIFICACIÓN: Estado para el conteo de mensajes no leídos
+  const [unreadMessages, setUnreadMessages] = useState(3);
 
   // Estados y hooks necesarios para las diferentes vistas
   const {
@@ -62,6 +100,8 @@ export default function LandlordDashboard() {
     if (currentView === "dashboard" || currentView === "properties") {
       fetchProperties();
     }
+    // 💡 CHAT/NOTIFICACIÓN: En un entorno real, aquí se llamaría a una API para obtener el conteo de mensajes no leídos
+    // Ejemplo: fetchUnreadMessagesCount().then(count => setUnreadMessages(count));
   }, [currentView]);
 
   // Loading state
@@ -86,6 +126,11 @@ export default function LandlordDashboard() {
         break;
       case "create-property":
         router.push("/profile/landlord?view=create-property");
+        break;
+      case "chat": // 💡 CHAT/NOTIFICACIÓN: Nueva vista de chat
+        router.push("/profile/landlord?view=chat");
+        // Al entrar al chat, se asume que los mensajes se leen
+        setUnreadMessages(0);
         break;
       case "profile":
         router.push("/profile/landlord?view=profile");
@@ -129,7 +174,9 @@ export default function LandlordDashboard() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {" "}
+              {/* Cambiado a 4 columnas */}
               <div className="bg-white p-6 rounded-lg border border-neutral-200">
                 <div className="flex items-center justify-between">
                   <div>
@@ -143,7 +190,6 @@ export default function LandlordDashboard() {
                   <Building2 className="h-8 w-8 text-sage" />
                 </div>
               </div>
-
               <div className="bg-white p-6 rounded-lg border border-neutral-200">
                 <div className="flex items-center justify-between">
                   <div>
@@ -157,7 +203,33 @@ export default function LandlordDashboard() {
                   <TrendingUp className="h-8 w-8 text-sage" />
                 </div>
               </div>
-
+              {/* 💡 CHAT/NOTIFICACIÓN: Tarjeta de Mensajes Recientes */}
+              <div
+                className="bg-white p-6 rounded-lg border border-neutral-200 cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleViewChange("chat")}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-600">
+                      Mensajes No Leídos
+                    </p>
+                    <p
+                      className={`text-2xl font-bold ${
+                        unreadMessages > 0 ? "text-golden" : "text-neutral-800"
+                      }`}
+                    >
+                      {unreadMessages}
+                    </p>
+                  </div>
+                  <MessageSquareText
+                    className={`h-8 w-8 ${
+                      unreadMessages > 0
+                        ? "text-golden animate-pulse"
+                        : "text-sage"
+                    }`}
+                  />
+                </div>
+              </div>
               <div className="bg-white p-6 rounded-lg border border-neutral-200">
                 <div className="flex items-center justify-between">
                   <div>
@@ -165,10 +237,12 @@ export default function LandlordDashboard() {
                       Ingresos Potenciales
                     </p>
                     <p className="text-2xl font-bold text-neutral-800">
-                      ${properties
+                      $
+                      {properties
                         .reduce(
                           (total, property) =>
-                            total + parseFloat(property.monthlyRent?.toString() || "0"),
+                            total +
+                            parseFloat(property.monthlyRent?.toString() || "0"),
                           0
                         )
                         .toLocaleString()}
@@ -197,7 +271,9 @@ export default function LandlordDashboard() {
                     <PropertyCard
                       key={property.id}
                       property={property}
-                      onEdit={() => handleViewChange("edit-property")}
+                      onEdit={() => {
+                        /* lógica de edición */
+                      }}
                       onDelete={() => requestDeleteProperty(property)}
                     />
                   ))}
@@ -208,6 +284,7 @@ export default function LandlordDashboard() {
         );
 
       case "properties":
+        // ... (Contenido de 'properties' sin cambios)
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -245,7 +322,9 @@ export default function LandlordDashboard() {
                 <PropertyCard
                   key={property.id}
                   property={property}
-                  onEdit={() => handleViewChange("edit-property")}
+                  onEdit={() => {
+                    /* lógica de edición */
+                  }}
                   onDelete={() => requestDeleteProperty(property)}
                 />
               ))}
@@ -254,6 +333,7 @@ export default function LandlordDashboard() {
         );
 
       case "create-property":
+        // ... (Contenido de 'create-property' sin cambios)
         return (
           <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-lg border border-neutral-200 p-8">
@@ -319,6 +399,9 @@ export default function LandlordDashboard() {
           </div>
         );
 
+      case "chat": // 💡 CHAT/NOTIFICACIÓN: Nuevo contenido para la vista de chat
+        return <ChatView />;
+
       case "profile":
         return <LandlordProfile />;
 
@@ -326,20 +409,19 @@ export default function LandlordDashboard() {
         return <LandlordProfile />;
     }
   };
-
   return (
     <div className="min-h-screen bg-neutral-50">
-      <Sidebar 
+      <SidebarComponent
         currentView={currentView}
         onViewChange={handleViewChange}
         onLogout={handleLogout}
+        // 💡 CHAT/NOTIFICACIÓN: Pasar el estado de notificación a la Sidebar
+        unreadMessagesCount={unreadMessages}
       />
       <div className="ml-64">
-        <main className="p-8">
-          {renderContent()}
-        </main>
+        <main className="p-8">{renderContent()}</main>
       </div>
-      
+
       {/* Loaders */}
       {isCreating && (
         <PropertyCreationLoader
@@ -351,3 +433,20 @@ export default function LandlordDashboard() {
     </div>
   );
 }
+
+// 💡 CHAT/NOTIFICACIÓN: Definición del propType para la Sidebar
+// Si usas TypeScript en la Sidebar, actualiza su interfaz.
+// Aquí va la actualización de la Sidebar (asumiendo que es un componente separado):
+//
+// Componente Sidebar (simulado, solo para mostrar el prop de notificación)
+// interface SidebarProps {
+//   currentView: string;
+//   onViewChange: (view: string) => void;
+//   onLogout: () => void;
+//   unreadMessagesCount: number; // Nuevo prop
+// }
+//
+// export function Sidebar({ currentView, onViewChange, onLogout, unreadMessagesCount }: SidebarProps) {
+//   // ... (Resto del código de Sidebar)
+// }
+//
