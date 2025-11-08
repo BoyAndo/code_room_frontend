@@ -1,89 +1,124 @@
 // app/api/chat/send/route.ts
-export const runtime = "nodejs";
 
-import { NextResponse } from "next/server";
-// 🛑 CORRECCIÓN 1: Usamos la función final 'saveMessage'
-import { saveMessage } from "@/lib/chat.db";
-import { getUserIdFromRequest } from "@/lib/auth.server";
-// 🛑 CORRECCIÓN 2: Usamos la importación estándar para Pusher Server
-import { pusherServer } from "@/lib/pusher.server";
+import { NextRequest, NextResponse } from "next/server";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { authCheck } from "@/lib/auth.server";
+import PusherServer from "pusher";
 
-export async function POST(request: Request) {
-  const data = await request.json(); // Data: { recipientId, propertyId, content }
+// --- CLIENTE DE SUPABASE SERVICE ---
+// Se define aquí para ser reutilizado en el historial
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
-  // El ID de usuario actual debe ser un número (coherente con Prisma Int)
-  const currentUserId = await getUserIdFromRequest();
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  throw new Error(
+    "Faltan variables de entorno de Supabase: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY (o equivalente)."
+  );
+}
 
-  if (!currentUserId) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-  }
+export const supabaseService: SupabaseClient = createClient(
+  SUPABASE_URL,
+  SUPABASE_SERVICE_KEY,
+  { auth: { persistSession: false } }
+);
+// --- FIN CLIENTE DE SUPABASE SERVICE ---
 
-  // --- 🛑 Conversión de Tipos (CRÍTICA) ---
-  // Aseguramos que los IDs sean números para la DB (int4)
-  const senderId = currentUserId; // Ya es number desde getUserIdFromRequest
-  const recipientId = Number(data.recipientId);
-  const propertyId = Number(data.propertyId);
-  const content = data.content;
+// --- CONFIGURACIÓN DE PUSHER ---
+const pusher = new PusherServer({
+  appId: process.env.PUSHER_APP_ID!,
+  key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
+  secret: process.env.PUSHER_SECRET!,
+  cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+  useTLS: true,
+});
 
-  // Verificación básica de datos
-  if (isNaN(recipientId) || isNaN(propertyId) || !content) {
-    return NextResponse.json(
-      { error: "Datos de mensaje incompletos o inválidos." },
-      { status: 400 }
-    );
-  }
+// Función auxiliar para generar el Room ID (debe ser idéntica a la del frontend)
+const getChatRoomId = (
+  id1: number,
+  id2: number,
+  propertyId: number
+): string => {
+  const sortedIds = [id1, id2].sort((a, b) => a - b).join("-");
+  return `private-chat-prop-${propertyId}-${sortedIds}`;
+};
 
+export async function POST(req: NextRequest) {
   try {
-    // 1. GUARDAR EN LA BASE DE DATOS (Supabase)
-    // La función saveMessage devuelve el objeto completo de la DB (Message | null)
-    const savedMessage = await saveMessage(
-      senderId,
-      recipientId,
-      propertyId,
-      content
-    );
+    // 1. AUTENTICACIÓN
+    const { user } = await authCheck();
+    if (!user || !user.id) {
+      console.error("DEBUG: 🔴 Fallo de autenticación en /api/chat/send.");
+      return NextResponse.json(
+        { error: "No autorizado o token inválido" },
+        { status: 401 }
+      );
+    }
+    const senderId = user.id;
 
-    if (!savedMessage) {
-      throw new Error("Fallo al guardar mensaje en la base de datos.");
+    // 2. RECEPCIÓN DE DATOS
+    const { recipientId, propertyId, content } = await req.json();
+
+    if (!recipientId || !propertyId || !content) {
+      console.error("DEBUG: 🟡 Datos de entrada incompletos.");
+      return NextResponse.json(
+        { error: "Faltan recipientId, propertyId o content" },
+        { status: 400 }
+      );
     }
 
-    // --- Preparación para Pusher ---
+    // 3. INSERCIÓN EN SUPABASE
+    const { data: newMessage, error: dbError } = await supabaseService
+      .from("messages")
+      .insert([
+        {
+          sender_id: senderId,
+          recipient_id: recipientId,
+          property_id: propertyId,
+          content: content.trim(),
+        },
+      ])
+      .select("*")
+      .single();
 
-    // El frontend espera IDs como STRING para la lógica de visualización (ChatWindow.tsx)
-    const u1Str = String(senderId);
-    const u2Str = String(recipientId);
+    if (dbError) {
+      console.error(
+        "DEBUG: ❌ ERROR de Supabase al insertar mensaje:",
+        dbError.message
+      );
+      return NextResponse.json(
+        {
+          error: "Fallo al guardar mensaje en la BD",
+          details: dbError.message,
+        },
+        { status: 500 }
+      );
+    }
 
-    // 2. CONSTRUIR EL NOMBRE DEL CANAL ÚNICO
-    const channelId = [u1Str, u2Str].sort().join("-");
-    const propertyIdStr = String(propertyId);
-    const channelName = `chat-propiedad-${propertyIdStr}-${channelId}`;
+    console.log(
+      "DEBUG: ✅ Mensaje guardado correctamente en Supabase. ID:",
+      newMessage.id
+    );
 
-    // El objeto de mensaje para el frontend debe usar senderId (string) y timestamp (string)
-    const messageForFrontend = {
-      id: savedMessage.id,
-      senderId: u1Str,
-      content: savedMessage.content,
-      timestamp: savedMessage.created_at,
-    };
+    // 4. NOTIFICACIÓN PUSHER
+    const chatRoomId = getChatRoomId(senderId, recipientId, propertyId);
 
-    // 3. DISPARAR EL EVENTO DE WEBSOCKET (Pusher) a la conversación
-    await pusherServer.trigger(channelName, "new-message", messageForFrontend);
+    await pusher.trigger(chatRoomId, "message-sent", newMessage);
 
-    // 4. DISPARAR EVENTO DE NOTIFICACIÓN (Opcional, pero bien implementado)
-    const recipientChannel = `notifications-user-${u2Str}`;
-    await pusherServer.trigger(recipientChannel, "new-unread-message", {
-      senderId: u1Str,
-      propertyId: propertyIdStr,
-    });
+    console.log(
+      `DEBUG: ✅ Evento 'message-sent' disparado en el canal: ${chatRoomId}`
+    );
 
+    // 5. RESPUESTA EXITOSA
     return NextResponse.json(
-      { success: true, message: messageForFrontend },
+      { success: true, message: newMessage },
       { status: 200 }
     );
   } catch (error) {
-    console.error("🔴 Error en API de envío:", error);
+    console.error("DEBUG: 🛑 Error general en el servidor:", error);
     return NextResponse.json(
-      { error: "Error interno del servidor." },
+      { error: "Error interno del servidor" },
       { status: 500 }
     );
   }

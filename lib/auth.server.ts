@@ -1,8 +1,9 @@
 // lib/auth.server.ts
+
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 
-// 🛑 INTERFACES (Asegúrate de que coincidan con tu JWT)
+// 🛑 INTERFACES (Confirma que coinciden con tu JWT)
 export interface LandlordPayload {
   id: number;
   landlordRut: string;
@@ -33,11 +34,23 @@ if (!JWT_SECRET) {
   );
 }
 
-export async function getUserIdFromRequest(): Promise<number | null> {
+// // 💡 CÓDIGO DE DEPURACIÓN TEMPORAL (¡ELIMINAR AL FINALIZAR!)
+// console.log("=========================================");
+// console.log(
+//   `DEBUG SECRETO: Primeros 10 chars: ${JWT_SECRET.substring(0, 10)}...`
+// );
+// console.log(`DEBUG SECRETO: Longitud total: ${JWT_SECRET.length}`);
+// console.log("=========================================");
+// // 💡 FIN CÓDIGO TEMPORAL
+
+/**
+ * Función que verifica el token y devuelve el objeto de usuario decodificado.
+ */
+export async function authCheck(): Promise<{ user: UserPayload | null }> {
   const tokenRaw = (await cookies()).get("authToken")?.value;
 
   if (!tokenRaw) {
-    return null;
+    return { user: null };
   }
 
   const token = tokenRaw.trim();
@@ -47,9 +60,12 @@ export async function getUserIdFromRequest(): Promise<number | null> {
       algorithms: ["HS256"],
     }) as UserPayload;
 
-    return decoded.id;
+    return { user: decoded };
   } catch (error) {
-    console.error("Fallo al verificar el token:", error);
-    return null;
+    // Mantenemos este log para saber si falla la firma
+    console.error("Fallo al verificar el token en authCheck:", error);
+    return { user: null };
   }
 }
+
+// ... (El resto de las funciones auxiliares, si las tienes)
