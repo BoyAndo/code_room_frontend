@@ -1,7 +1,6 @@
-// PropertyPage.tsx
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAuth, isLandlord } from "@/contexts/AuthContext";
 import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
@@ -29,10 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
-// 💡 IMPORTANTE: Asegúrate de que este archivo exista y esté configurado
-import * as PusherClient from "@/lib/pusher.client";
-
-// --- Interfaces ---
+// Interfaces (las mismas que en search/page.tsx)
 interface Amenity {
   id: number;
   name: string;
@@ -82,24 +78,6 @@ interface Property {
   longitude: number | null;
 }
 
-interface ChatMessage {
-  id: number;
-  text: string;
-  sender: "user" | "other"; // 'user' es el usuario logueado, 'other' es el propietario/arrendatario
-  timestamp: string;
-}
-
-// Función auxiliar para generar un ID de sala de chat consistente
-const getChatRoomId = (
-  id1: number,
-  id2: number,
-  propertyId: number
-): string => {
-  // Ordena los IDs de usuario para asegurar un nombre de canal consistente
-  const sortedIds = [id1, id2].sort((a, b) => a - b).join("-");
-  return `private-chat-prop-${propertyId}-${sortedIds}`;
-};
-
 export default function PropertyPage() {
   const params = useParams();
   const { user } = useAuth();
@@ -107,14 +85,13 @@ export default function PropertyPage() {
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [chatMessage, setChatMessage] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatRoomId, setChatRoomId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
 
-  // --- Efecto 1: Carga de la Propiedad ---
   useEffect(() => {
     const fetchProperty = async () => {
       try {
         setLoading(true);
+        console.log("Fetching property details for ID:", params.id);
         const API_URL =
           process.env.NEXT_PUBLIC_API_PROPERTIES_URL ||
           "http://localhost:3002/api";
@@ -130,18 +107,31 @@ export default function PropertyPage() {
           }
         );
 
+        console.log("Property details response status:", response.status);
+        console.log(
+          "Response headers:",
+          Object.fromEntries(response.headers.entries())
+        );
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
+        console.log("API Response:", result); // Debug log
+
+        // Extraer los datos de la propiedad de la respuesta
         const propertyData = result.data || result;
 
+        // Asegurarse de que los campos requeridos estén presentes
         if (!propertyData) {
           throw new Error("No se recibieron datos de la propiedad");
         }
 
-        const transformedProperty: Property = {
+        console.log("Property data before transform:", propertyData);
+
+        // Transformar los datos si es necesario
+        const transformedProperty = {
           ...propertyData,
           images:
             propertyData.propertyImages?.map((img: any) => img.imageUrl) || [],
@@ -153,6 +143,7 @@ export default function PropertyPage() {
           },
         };
 
+        console.log("Transformed property:", transformedProperty);
         setProperty(transformedProperty);
       } catch (error) {
         console.error("Error fetching property:", error);
@@ -166,154 +157,29 @@ export default function PropertyPage() {
     }
   }, [params.id]);
 
-  // --- Efecto 2: Carga de Historial y Pusher (DEPENDENCIA EN 'property' y 'user') ---
-  useEffect(() => {
-    // Solo proceder si la propiedad y el usuario están cargados
-    if (!property || !user || !user.id) return;
-
-    const currentRoomId = getChatRoomId(
-      Number(user.id),
-      property.landlordId,
-      property.id
-    );
-    setChatRoomId(currentRoomId);
-
-    // --- 1. Cargar Historial ---
-    // PropertyPage.tsx - Dentro de useEffect 2
-
-    const fetchChatHistory = async () => {
-      try {
-        const historyResponse = await fetch(
-          `/api/chat/history?propertyId=${property.id}&otherUserId=${property.landlordId}`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        );
-
-        if (historyResponse.ok) {
-          const historyData = await historyResponse.json();
-          const formattedMessages: ChatMessage[] = historyData.messages.map(
-            (msg: any) => ({
-              id: msg.id,
-              text: msg.content,
-              sender: msg.sender_id === Number(user.id) ? "user" : "other",
-              timestamp: new Date(msg.created_at).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            })
-          );
-          setChatMessages(formattedMessages);
-        } else {
-          // 💡 MODIFICACIÓN: Si falla la carga (ej: 401 por JWT), aseguramos que el estado quede vacío.
-          setChatMessages([]);
-          console.error(
-            "Fallo al cargar el historial. Código:",
-            historyResponse.status,
-            await historyResponse.text() // Muestra la respuesta de error (e.g., "No autorizado")
-          );
-        }
-      } catch (error) {
-        console.error("Error de red al cargar el historial:", error);
-        setChatMessages([]); // Limpieza en caso de error de red.
-      }
-    };
-    // ...
-
-    fetchChatHistory();
-
-    // --- 2. Suscribirse a Pusher ---
-    const channel: any = (PusherClient as any).subscribe(currentRoomId);
-
-    channel.bind("message-sent", (data: any) => {
-      console.log("Mensaje en tiempo real recibido:", data);
-
-      const incomingMessage: ChatMessage = {
-        id: data.id,
-        text: data.content,
-        sender: data.sender_id === Number(user.id) ? "user" : "other",
-        timestamp: new Date(data.created_at).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+  const handleSendMessage = () => {
+    if (chatMessage.trim() && property) {
+      const newMessage = {
+        id: Date.now(),
+        text: chatMessage,
+        sender: "user",
+        timestamp: new Date().toLocaleTimeString(),
       };
+      setChatMessages([...chatMessages, newMessage]);
+      setChatMessage("");
 
-      setChatMessages((prev) => {
-        // Si el mensaje ya existe (ej: fue insertado por Optimistic UI), no lo insertamos
-        const exists = prev.some((msg) => msg.id === incomingMessage.id);
-        if (exists) return prev;
-
-        return [...prev, incomingMessage];
-      });
-    });
-
-    // Limpieza de Pusher
-    return () => {
-      (PusherClient as any).unsubscribe(currentRoomId);
-      // Opcional: desconectar Pusher completamente si es el único uso en la app
-      // (PusherClient as any).disconnect();
-    };
-  }, [user, property]); // Dependencia en user y property para re-ejecutar cuando se carguen
-
-  // --- Handler de Envío de Mensajes (Sin auto-respuesta) ---
-  const handleSendMessage = useCallback(async () => {
-    if (!chatMessage.trim() || !property || !user || !user.id) return;
-
-    const messageContent = chatMessage.trim();
-
-    // 1. Optimistic UI: Mostrar mensaje en la interfaz inmediatamente
-    const tempMessage: ChatMessage = {
-      // Usar un ID temporal grande
-      id: Date.now(),
-      text: messageContent,
-      sender: "user",
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-
-    setChatMessages((prev) => [...prev, tempMessage]);
-    setChatMessage(""); // Limpiar el input
-
-    try {
-      // 2. Llamada a la API de envío de chat (Guarda en DB y notifica a Pusher)
-      const response = await fetch("/api/chat/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          recipientId: property.landlordId,
-          propertyId: property.id,
-          content: messageContent,
-        }),
-      });
-
-      if (!response.ok) {
-        console.error(
-          "Fallo al enviar el mensaje a la API. Revertir Optimistic UI."
-        );
-        // Revertir la UI optimista si falla el envío
-        setChatMessages((prev) =>
-          prev.filter((msg) => msg.id !== tempMessage.id)
-        );
-        // Opcional: mostrar un Toast de error
-      }
-
-      // La actualización final (con el ID real de la BD) se manejará a través del listener de Pusher (Effect 2)
-    } catch (error) {
-      console.error("Error de red al enviar el mensaje:", error);
-      // Revertir la UI optimista si hay un error de red
-      setChatMessages((prev) =>
-        prev.filter((msg) => msg.id !== tempMessage.id)
-      );
+      // Simular respuesta automática del propietario
+      setTimeout(() => {
+        const autoReply = {
+          id: Date.now() + 1,
+          text: "¡Hola! Gracias por tu interés en la propiedad. ¿Te gustaría agendar una visita?",
+          sender: "owner",
+          timestamp: new Date().toLocaleTimeString(),
+        };
+        setChatMessages((prev) => [...prev, autoReply]);
+      }, 2000);
     }
-  }, [chatMessage, property, user]); // Dependencias
-
-  // Renderizado
+  };
 
   if (loading) {
     return (
