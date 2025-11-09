@@ -1,37 +1,49 @@
-// components/ChatWindow.tsx
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-// 🛑 CORRECCIÓN: Usamos el cliente global importado desde /lib/pusher.client
 import { pusherClient } from "@/lib/pusher.client";
+import { MessageSquareText } from "lucide-react";
 
-// ...existing code...
-interface Message {
+// La estructura del mensaje que esperamos de la base de datos
+interface DBMessage {
   id: number;
-  senderId: string;
+  sender_id: number;
+  recipient_id: number;
+  property_id: number;
   content: string;
-  timestamp: string;
+  created_at: string;
+  sender_role: string; // ✅ CRÍTICO: Usado para renderizar el lado correcto
+  recipient_role: string;
 }
 
 interface ChatWindowProps {
-  currentUserId: string;
-  landlordId: string;
-  propertyId: string;
+  currentUserId: string; // ID del usuario loggeado
+  landlordId: string; // ID del Arrendador en esta conversación
+  propertyId: string; // ID de la Propiedad
+  studentId: string; // ID del Estudiante en esta conversación
+  studentName?: string;
+  propertyName?: string;
 }
-// ------------------
 
 const ChatWindow: React.FC<ChatWindowProps> = ({
   currentUserId,
   landlordId,
   propertyId,
+  studentId,
 }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<DBMessage[]>([]);
   const [inputContent, setInputContent] = useState("");
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const channelId = [currentUserId, landlordId].sort().join("-");
-  const conversationChannelName = `chat-propiedad-${propertyId}-${channelId}`;
+  // ✅ DETERMINAMOS EL ROL DEL USUARIO LOGUEADO EN ESTA CONVERSACIÓN
+  const isCurrentUserLandlord = String(currentUserId) === landlordId;
+
+  // Generación del nombre del canal Pusher (ordenado para consistencia)
+  const channelParticipants = [String(landlordId), String(studentId)]
+    .sort()
+    .join("-");
+  const conversationChannelName = `private-chat-prop-${propertyId}-${channelParticipants}`;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -41,34 +53,54 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/chat/history?landlordId=${landlordId}&propertyId=${propertyId}`
+        `/api/chat/history?landlordId=${landlordId}&propertyId=${propertyId}&studentId=${studentId}`,
+        {
+          credentials: "include",
+        }
       );
 
       if (response.ok) {
-        const data: Message[] = await response.json();
-        setMessages(data);
+        const result = await response.json();
+        const messagesArray: DBMessage[] = Array.isArray(result.messages)
+          ? result.messages
+          : [];
+
+        setMessages(messagesArray);
+        console.log(
+          `DEBUG: ✅ Historial cargado. Total mensajes: ${messagesArray.length}`
+        );
       } else {
-        console.error("Fallo al obtener historial:", await response.text());
+        const errorText = await response.text();
+        console.error(
+          `Fallo al obtener historial (Status: ${response.status}):`,
+          errorText
+        );
+        setMessages([]);
       }
     } catch (error) {
       console.error("Error de red al obtener historial:", error);
+      setMessages([]);
     } finally {
       setLoading(false);
     }
-  }, [landlordId, propertyId]);
+  }, [landlordId, propertyId, studentId]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputContent.trim()) return;
+    const trimmedContent = inputContent.trim();
+    if (!trimmedContent) return;
+
+    // Determinar el destinatario
+    const recipientId = isCurrentUserLandlord ? studentId : landlordId;
 
     try {
       await fetch(`/api/chat/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          recipientId: landlordId,
+          recipientId: recipientId,
           propertyId: propertyId,
-          content: inputContent,
+          content: trimmedContent,
         }),
         credentials: "include",
       });
@@ -78,10 +110,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   };
 
+  // 1. Efecto para Cargar Historial y Conexión a Pusher
   useEffect(() => {
     fetchHistory();
 
-    // Protección por si pusherClient no está disponible en entorno actual
     if (!pusherClient || typeof pusherClient.subscribe !== "function") {
       console.warn(
         "pusherClient no disponible: omitiendo suscripción WebSocket"
@@ -91,10 +123,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
     const channel = pusherClient.subscribe(conversationChannelName);
 
-    channel.bind("new-message", (data: Message) => {
+    // Bindeamos el evento 'message-sent' que dispara el backend
+    channel.bind("message-sent", (data: DBMessage) => {
       console.log("Mensaje recibido por WebSocket:", data);
 
       setMessages((prevMessages) => {
+        if (!Array.isArray(prevMessages)) return [data];
+
+        // Evitar duplicados
         if (!prevMessages.some((msg) => msg.id === data.id)) {
           return [...prevMessages, data];
         }
@@ -102,52 +138,74 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       });
     });
 
+    // Función de limpieza para desuscribirse de Pusher al desmontar
     return () => {
       try {
         channel.unbind_all();
         pusherClient.unsubscribe(conversationChannelName);
       } catch (err) {
-        // Evitar errores en limpieza si el canal ya no existe
         console.warn("Error during Pusher cleanup:", err);
       }
     };
   }, [conversationChannelName, fetchHistory]);
 
+  // 2. Efecto para Desplazamiento (Scroll)
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   if (loading) {
-    return <div>Cargando mensajes...</div>;
+    return (
+      <div className="flex justify-center items-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sage"></div>
+        <p className="ml-3 text-neutral-600">Cargando mensajes...</p>
+      </div>
+    );
+  }
+
+  if (messages.length === 0 && !loading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-full text-neutral-500">
+        <MessageSquareText className="h-10 w-10 mb-2" />
+        <p>¡Inicia la conversación!</p>
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col h-full bg-white border rounded-lg shadow-lg">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${
-              msg.senderId === currentUserId ? "justify-end" : "justify-start"
-            }`}
-          >
+        {messages.map((msg) => {
+          // ✅ CORRECCIÓN: Usamos el rol para determinar si es mensaje propio o recibido.
+          const isOwnMessage =
+            (isCurrentUserLandlord && msg.sender_role === "LANDLORD") ||
+            (!isCurrentUserLandlord && msg.sender_role === "STUDENT");
+
+          return (
             <div
-              className={`p-3 max-w-xs rounded-lg shadow-md ${
-                msg.senderId === currentUserId
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-800"
+              key={msg.id}
+              className={`flex ${
+                isOwnMessage ? "justify-end" : "justify-start"
               }`}
             >
-              <p className="text-sm">{msg.content}</p>
-              <span className="text-xs opacity-75 mt-1 block text-right">
-                {new Date(msg.timestamp).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
+              <div
+                className={`p-3 max-w-xs rounded-lg shadow-md ${
+                  isOwnMessage
+                    ? "bg-sage text-white" // Mensaje Propio (Derecha)
+                    : "bg-gray-200 text-neutral-800" // ✅ Mensaje Recibido (Izquierda, color visible)
+                }`}
+              >
+                <p className="text-sm">{msg.content}</p>
+                <span className="text-xs opacity-75 mt-1 block text-right">
+                  {new Date(msg.created_at).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
@@ -158,12 +216,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             value={inputContent}
             onChange={(e) => setInputContent(e.target.value)}
             placeholder="Escribe un mensaje..."
-            className="flex-1 border border-gray-300 p-3 rounded-full focus:ring-blue-500 focus:border-blue-500"
+            className="flex-1 border border-gray-300 p-3 rounded-full focus:ring-sage focus:border-sage"
             disabled={loading}
           />
           <button
             type="submit"
-            className="bg-green-500 text-white p-3 rounded-full hover:bg-green-600 disabled:bg-gray-400 transition duration-150"
+            className="bg-sage text-white p-3 rounded-full hover:bg-sage/90 disabled:bg-neutral-400 transition duration-150"
             disabled={loading || !inputContent.trim()}
           >
             Enviar

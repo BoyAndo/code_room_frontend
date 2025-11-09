@@ -7,6 +7,7 @@ import { LandlordProfile } from "@/components/landlord/LandlordProfile";
 import { Sidebar } from "@/components/landlord/Sidebar";
 import { useState, useEffect } from "react";
 import { Property } from "@/types/property";
+import LandlordChatsPage from "@/components/landlord/LandlordChatsPage";
 
 // Importación de componentes necesarios
 import { PropertyCard } from "@/components/landlord/PropertyCard";
@@ -400,7 +401,7 @@ export default function LandlordDashboard() {
         );
 
       case "chat": // 💡 CHAT/NOTIFICACIÓN: Nuevo contenido para la vista de chat
-        return <ChatView />;
+        return <LandlordChatsPage />; // 🚨 Usa el componente real
 
       case "profile":
         return <LandlordProfile />;
