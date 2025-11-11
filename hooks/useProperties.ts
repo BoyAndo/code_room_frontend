@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Property, Amenity } from "@/types/property";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/api-client";
 
 export function useProperties() {
   const { user } = useAuth();
@@ -23,22 +24,23 @@ export function useProperties() {
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_PROPERTIES_URL || "http://localhost:3002/api";
-      const response = await fetch(
-        `${API_URL}/properties/my-properties`,
-        {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        }
-      );
+      const response = await apiFetch(`${API_URL}/properties/my-properties`);
 
       if (response.ok) {
         const result = await response.json();
 
         if (result.success && result.data) {
-          setProperties(result.data);
+          // Transformar las propiedades para asegurar que tengan el array de images
+          const transformedProperties = result.data.map((property: any) => ({
+            ...property,
+            // Manejar imágenes - el backend puede devolver 'images', 'propertyImages' o 'propertyimage'
+            images: 
+              property.images || // Backend devuelve directamente 'images'
+              property.propertyImages?.map((img: any) => img.imageUrl) || // Fallback a propertyImages
+              property.propertyimage?.map((img: any) => img.imageUrl) || // Fallback a propertyimage (lowercase)
+              [],
+          }));
+          setProperties(transformedProperties);
         } else {
           console.error("Unexpected properties response format:", result);
         }
@@ -58,16 +60,7 @@ export function useProperties() {
   const fetchAmenities = useCallback(async () => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_PROPERTIES_URL || "http://localhost:3002/api";
-      const response = await fetch(
-        `${API_URL}/properties/amenities`,
-        {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          }
-        }
-      );
+      const response = await apiFetch(`${API_URL}/properties/amenities`);
 
       if (response.ok) {
         const result = await response.json();
@@ -107,15 +100,10 @@ export function useProperties() {
     setIsDeleting(true);
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_PROPERTIES_URL || "http://localhost:3002/api";
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/properties/${propertyToDelete.id}`,
         {
           method: "DELETE",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
         }
       );
 
@@ -125,8 +113,9 @@ export function useProperties() {
           description: "La propiedad se ha eliminado exitosamente",
           duration: 5000,
         });
-        setPropertyToDelete(null);
-        fetchProperties();
+        
+        // Actualizar la lista de propiedades
+        await fetchProperties();
       } else {
         const errorData = await response.json();
         toast({
@@ -144,7 +133,9 @@ export function useProperties() {
         duration: 6000,
       });
     } finally {
+      // IMPORTANTE: Cerrar el modal y resetear estado después de cualquier resultado
       setIsDeleting(false);
+      setPropertyToDelete(null);
     }
   }, [propertyToDelete, toast, fetchProperties]);
 

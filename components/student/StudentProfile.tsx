@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { apiFetch } from "@/lib/api-client";
 import {
   User,
   School,
@@ -18,6 +20,8 @@ import {
   Building2,
   MessageCircle,
   Trash2,
+  LogOut,
+  Search,
 } from "lucide-react";
 import { useAuth, isStudent } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -90,10 +94,12 @@ export const StudentProfile = () => {
       const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
       console.log("Uploading to:", `${API_URL}/profile/student/photo`);
       
-      const response = await fetch(`${API_URL}/profile/student/photo`, {
+      const response = await apiFetch(`${API_URL}/profile/student/photo`, {
         method: "POST",
         body: formData,
-        credentials: "include",
+        headers: {
+          // No incluir Content-Type para FormData, el navegador lo establece automáticamente
+        },
       });
 
       console.log("Response status:", response.status);
@@ -135,9 +141,8 @@ export const StudentProfile = () => {
       setIsDeleting(true);
       
       const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
-      const response = await fetch(`${API_URL}/user/student`, {
+      const response = await apiFetch(`${API_URL}/user/student`, {
         method: "DELETE",
-        credentials: "include",
       });
 
       if (!response.ok) {
@@ -246,14 +251,28 @@ export const StudentProfile = () => {
               <p className="text-sm text-education font-medium mb-4">
                 {isStudent(user) ? user.studentRut : ""}
               </p>
-              <Button
-                onClick={() => setIsEditing(!isEditing)}
-                className="bg-golden hover:bg-education text-white font-semibold"
-                size="sm"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                {isEditing ? "Cancelar" : "Editar Perfil"}
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="bg-golden hover:bg-education text-white font-semibold"
+                  size="sm"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  {isEditing ? "Cancelar" : "Editar Perfil"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-red-200 text-red-600 hover:bg-red-50"
+                  onClick={() => {
+                    logout();
+                    router.push("/");
+                  }}
+                  size="sm"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Cerrar Sesión
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -377,36 +396,31 @@ export const StudentProfile = () => {
         </CardContent>
       </Card>
 
-      {/* Activity Stats */}
+      {/* Recommended Actions */}
       <Card className="bg-white backdrop-blur-sm border-sage/20 shadow-lg">
         <CardHeader>
           <CardTitle className="text-neutral-800">
-            Actividad en la Plataforma
+            Acciones Recomendadas
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="p-4 bg-cream/20 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <Bookmark className="h-5 w-5 text-education" />
-                <span className="text-2xl font-bold text-education">8</span>
-              </div>
-              <p className="text-sm text-neutral-600">Propiedades Guardadas</p>
-            </div>
-            <div className="p-4 bg-cream/20 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <Building2 className="h-5 w-5 text-education" />
-                <span className="text-2xl font-bold text-education">3</span>
-              </div>
-              <p className="text-sm text-neutral-600">Visitas Programadas</p>
-            </div>
-            <div className="p-4 bg-cream/20 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <MessageCircle className="h-5 w-5 text-education" />
-                <span className="text-2xl font-bold text-education">15</span>
-              </div>
-              <p className="text-sm text-neutral-600">Mensajes Enviados</p>
-            </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Link href="/search" className="w-full">
+              <Button
+                variant="outline"
+                className="w-full border-sage/30 text-sage hover:bg-sage/10"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Buscar Propiedades
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              className="w-full border-sage/30 text-sage hover:bg-sage/10"
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Mensajes
+            </Button>
           </div>
         </CardContent>
       </Card>

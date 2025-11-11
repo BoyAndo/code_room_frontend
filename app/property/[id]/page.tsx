@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAuth, isLandlord } from "@/contexts/AuthContext";
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+import { useGoogleMaps } from "@/contexts/GoogleMapsContext";
+import { GoogleMap, Marker } from "@react-google-maps/api";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -11,7 +12,6 @@ import {
   MapPin,
   Heart,
   MessageCircle,
-  Share2,
   CheckCircle2,
   Home,
   User,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/lib/api-client";
 import {
   Dialog,
   DialogContent,
@@ -74,18 +75,47 @@ interface Property {
   images: string[];
   amenities: Amenity[];
   landlord: Landlord;
-  latitude: number | null;
-  longitude: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export default function PropertyPage() {
   const params = useParams();
   const { user } = useAuth();
+  const { isLoaded: isMapLoaded, loadError: mapLoadError } = useGoogleMaps();
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [chatMessage, setChatMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({
+    lat: -33.447487,
+    lng: -70.673676,
+  }); // Centro por defecto: Santiago
+
+  // Función para geocodificar la dirección
+  const geocodeAddress = async (address: string, comuna: string, region: string) => {
+    if (!isMapLoaded || !window.google) return;
+
+    const geocoder = new window.google.maps.Geocoder();
+    const fullAddress = `${address}, ${comuna}, ${region}, Chile`;
+
+    geocoder.geocode({ address: fullAddress }, (results, status) => {
+      if (status === "OK" && results && results[0]) {
+        const location = results[0].geometry.location;
+        setMapCenter({
+          lat: location.lat(),
+          lng: location.lng(),
+        });
+        console.log("Geocoded address:", fullAddress, "to", {
+          lat: location.lat(),
+          lng: location.lng(),
+        });
+      } else {
+        console.error("Geocoding failed:", status);
+      }
+    });
+  };
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -95,15 +125,10 @@ export default function PropertyPage() {
         const API_URL =
           process.env.NEXT_PUBLIC_API_PROPERTIES_URL ||
           "http://localhost:3002/api";
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_URL}/properties/${params.id}/with-landlord`,
           {
             method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            credentials: "include",
           }
         );
 
@@ -133,10 +158,22 @@ export default function PropertyPage() {
         // Transformar los datos si es necesario
         const transformedProperty = {
           ...propertyData,
+          // Extraer nombres de comuna y región si vienen como objetos
+          comuna: propertyData.comuna?.name || propertyData.comuna || "Comuna desconocida",
+          region: propertyData.region?.name || propertyData.region || "Región desconocida",
+          // Manejar imágenes - el backend ahora devuelve 'images' directamente
+          // pero también mantener compatibilidad con propertyImages y propertyimage
           images:
-            propertyData.propertyImages?.map((img: any) => img.imageUrl) || [],
+            propertyData.images || // Primero intentar con 'images' (lo que devuelve el backend)
+            propertyData.propertyImages?.map((img: any) => img.imageUrl) || // Fallback a propertyImages
+            propertyData.propertyimage?.map((img: any) => img.imageUrl) || // Fallback a propertyimage (lowercase)
+            [],
+          // Manejar amenities - similar al caso de imágenes
           amenities:
-            propertyData.propertyAmenities?.map((pa: any) => pa.amenity) || [],
+            propertyData.amenities || // Primero intentar con 'amenities' (lo que devuelve el backend)
+            propertyData.propertyAmenities?.map((pa: any) => pa.amenity) || // Fallback a propertyAmenities
+            propertyData.propertyamenity?.map((pa: any) => pa.amenity) || // Fallback a propertyamenity (lowercase)
+            [],
           landlord: propertyData.landlord || {
             id: propertyData.landlordId,
             landlordName: "Propietario",
@@ -144,6 +181,12 @@ export default function PropertyPage() {
         };
 
         console.log("Transformed property:", transformedProperty);
+        console.log("Images array:", transformedProperty.images);
+        console.log("Address for geocoding:", {
+          address: transformedProperty.address,
+          comuna: transformedProperty.comuna,
+          region: transformedProperty.region
+        });
         setProperty(transformedProperty);
       } catch (error) {
         console.error("Error fetching property:", error);
@@ -156,6 +199,20 @@ export default function PropertyPage() {
       fetchProperty();
     }
   }, [params.id]);
+
+  // Geocodificar la dirección cuando la propiedad se carga y el mapa está listo
+  // Solo si NO hay coordenadas guardadas
+  useEffect(() => {
+    if (property && isMapLoaded && !property.latitude && !property.longitude) {
+      geocodeAddress(property.address, property.comuna, property.region);
+    } else if (property && property.latitude && property.longitude) {
+      // Si ya tiene coordenadas, usar esas directamente
+      setMapCenter({
+        lat: Number(property.latitude),
+        lng: Number(property.longitude),
+      });
+    }
+  }, [property, isMapLoaded]);
 
   const handleSendMessage = () => {
     if (chatMessage.trim() && property) {
@@ -350,41 +407,64 @@ export default function PropertyPage() {
 
               {/* Map */}
               <div className="mt-6">
-                <h2 className="text-lg font-semibold text-neutral-800 mb-2">
+                <h2 className="text-lg font-semibold text-neutral-800 mb-4">
                   Ubicación
                 </h2>
-                <LoadScript
-                  googleMapsApiKey={
-                    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
-                  }
-                >
+                {mapLoadError && (
+                  <div className="text-red-500 mb-4">
+                    Error al cargar el mapa: {mapLoadError.message}
+                  </div>
+                )}
+                {!isMapLoaded ? (
+                  <div className="w-full h-[300px] bg-neutral-100 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-golden mx-auto mb-2"></div>
+                      <p className="text-neutral-600">Cargando mapa...</p>
+                    </div>
+                  </div>
+                ) : (
                   <GoogleMap
                     mapContainerStyle={{
                       width: "100%",
                       height: "300px",
                       borderRadius: "8px",
                     }}
-                    center={
-                      property.latitude && property.longitude
-                        ? { lat: property.latitude, lng: property.longitude }
-                        : { lat: -33.447487, lng: -70.673676 }
-                    }
+                    center={mapCenter}
                     zoom={15}
+                    options={{
+                      zoomControl: true,
+                      streetViewControl: false,
+                      mapTypeControl: false,
+                      fullscreenControl: true,
+                    }}
                   >
-                    {property.latitude && property.longitude && (
-                      <Marker
-                        position={{
-                          lat: property.latitude,
-                          lng: property.longitude,
-                        }}
-                        title={property.address}
-                        icon={{
-                          url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
-                        }}
-                      />
-                    )}
+                    <Marker
+                      position={mapCenter}
+                      title={property.address}
+                      icon={{
+                        url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                        scaledSize: new window.google.maps.Size(40, 40),
+                      }}
+                    />
                   </GoogleMap>
-                </LoadScript>
+                )}
+                <div className="mt-2 flex items-center text-sm text-neutral-600">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  <a
+                    href={
+                      property.latitude && property.longitude
+                        ? `https://www.google.com/maps/search/?api=1&query=${property.latitude},${property.longitude}`
+                        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                            property.address + ", " + property.comuna + ", " + property.region + ", Chile"
+                          )}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-golden hover:underline"
+                  >
+                    Ver en Google Maps
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -532,14 +612,6 @@ export default function PropertyPage() {
                     </DialogContent>
                   </Dialog>
                 )}
-
-                <Button
-                  variant="outline"
-                  className="w-full border-sage/30 text-sage hover:bg-warm"
-                >
-                  <Share2 className="h-5 w-5 mr-2" />
-                  Compartir propiedad
-                </Button>
               </div>
             </div>
 

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { apiFetch } from "@/lib/api-client";
 import {
   Select,
   SelectContent,
@@ -541,10 +542,12 @@ export default function SearchPage() {
   };
 
   const fetchProperties = useCallback(async () => {
-    // ... (Lógica de fetchProperties omitida por ser idéntica)
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      
+      console.log('🔍 =========================');
+      console.log('🔍 FETCH PROPERTIES CALLED');
+      console.log('🔍 Filters - City:', selectedCity, 'Type:', propertyType, 'Price:', priceRange, 'Sort:', sortOrder);
 
       const params = new URLSearchParams();
 
@@ -577,32 +580,48 @@ export default function SearchPage() {
         queryString ? `?${queryString}` : ""
       }`;
 
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      };
+      // Usar apiFetch que maneja automáticamente el refresh de tokens
+      const response = await apiFetch(url);
 
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: headers,
-        credentials: "include",
-      });
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response ok:', response.ok);
 
       if (!response.ok) {
+        console.error('❌ Response not OK:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('❌ Error body:', errorText);
         setProperties([]);
         return;
       }
 
       const result = await response.json();
+      console.log('🔍 Full API Response:', result);
+      console.log('🔍 Type of result:', typeof result);
+      console.log('🔍 Is result an array?', Array.isArray(result));
+      console.log('🔍 result.data:', result.data);
+      console.log('🔍 result.properties:', result.properties);
+      
       const data = result.data?.properties || result.properties || result;
+      console.log('🔍 Extracted properties (before transform):', data);
+      console.log('🔍 Data length:', data?.length);
 
       if (Array.isArray(data)) {
-        setProperties(data as Property[]);
+        // Transformar las propiedades para asegurar que tengan el array de images
+        const transformedProperties = data.map((property: any) => ({
+          ...property,
+          // Manejar imágenes - el backend puede devolver 'images', 'propertyImages' o 'propertyimage'
+          images: 
+            property.images || // Backend devuelve directamente 'images'
+            property.propertyImages?.map((img: any) => img.imageUrl) || // Fallback a propertyImages
+            property.propertyimage?.map((img: any) => img.imageUrl) || // Fallback a propertyimage (lowercase)
+            [],
+        }));
+        console.log('🔍 Transformed properties:', transformedProperties);
+        console.log('🔍 Setting properties to state with length:', transformedProperties.length);
+        setProperties(transformedProperties as Property[]);
+        console.log('✅ Properties set successfully!');
       } else {
+        console.error('❌ Data is not an array, setting empty array');
         setProperties([]);
       }
     } catch (error) {
@@ -716,9 +735,8 @@ export default function SearchPage() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const response = await fetch("http://localhost:3001/auth/me", {
+        const response = await apiFetch("http://localhost:3001/auth/me", {
           method: "GET",
-          credentials: "include",
         });
 
         if (response.ok) {
@@ -803,6 +821,11 @@ export default function SearchPage() {
     fetchChatHistory(selectedProperty);
   }, [selectedProperty, user, fetchChatHistory]);
   // 🛑 FIN NUEVO useEffect 🛑
+
+  // Debug: Log properties state
+  console.log('🎨 RENDER - Properties length:', properties?.length);
+  console.log('🎨 RENDER - Loading:', loading);
+  console.log('🎨 RENDER - Properties:', properties);
 
   return (
     <div className="min-h-screen code-room-subtle-pattern">

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 // Interfaces separadas para cada tipo de usuario
@@ -49,8 +51,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const checkAuth = async () => {
     try {
       console.log("Verificando autenticación...");
-      const res = await fetch(`${API_BASE_URL}/auth/me`, {
-        credentials: "include",
+      // 🔑 IMPORTANTE: skipRefresh para evitar loops infinitos en /login
+      const res = await apiFetch(`${API_BASE_URL}/auth/me`, {
+        skipRefresh: true // No intentar refrescar automáticamente aquí
       });
 
       if (res.ok) {
@@ -62,6 +65,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           return true;
         }
       }
+      
+      // Si no está autenticado, limpiar el usuario
+      console.log("No hay sesión válida");
       setUser(null);
       return false;
     } catch (error) {
@@ -96,13 +102,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = async () => {
     setIsLoading(true);
     try {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
+      console.log("Cerrando sesión...");
+      
+      // Primero limpiar el estado local inmediatamente
       setUser(null);
+      
+      // Luego llamar al backend con skipRefresh para evitar loops
+      await apiFetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        skipRefresh: true // No intentar refrescar durante el logout
+      });
+      
+      console.log("Sesión cerrada exitosamente");
     } catch (error) {
       console.error("Error en logout:", error);
+      // Asegurarse de limpiar el estado incluso si falla la llamada al backend
+      setUser(null);
     } finally {
       setIsLoading(false);
     }

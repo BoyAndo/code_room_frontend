@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { PropertyFormData, Amenity, Property } from "@/types/property";
 import { useAuth, isLandlord } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/api-client";
 
 const initialFormData: PropertyFormData = {
   title: "",
@@ -215,58 +216,42 @@ export function usePropertyForm() {
         submitData.append("propertyImages", image);
       });
 
-      const response = await fetch(
+      const response = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_PROPERTIES_URL}/properties`,
         {
           method: "POST",
-          credentials:"include",
           body: submitData, // Debe ser submitData
         }
       );
 
+      if (!response.ok) {
+        throw new Error("Error al crear la propiedad");
+      }
+
       const responseData = await response.json();
 
-      if (response.ok) {
-        // 🔑 Paso 1.3 - Parte 2: Actualizar estado con coordenadas finales del Backend
-        const createdProperty: Property =
-          responseData.data || responseData.property;
+      // 🔑 Paso 1.3 - Parte 2: Actualizar estado con coordenadas finales del Backend
+      const createdProperty: Property =
+        responseData.data || responseData.property;
 
-        if (
-          createdProperty &&
-          createdProperty.latitude &&
-          createdProperty.longitude
-        ) {
-          setFormData((prev) => ({
-            ...prev,
-            latitude: createdProperty.latitude as number,
-            longitude: createdProperty.longitude as number,
-          }));
-        }
-
-        setCreationStatus("success");
-        toast({
-            title: "Éxito",
-            description: "Propiedad creada y pendiente de validación de documentos.",
-        });
-        return true;
-      } else {
-        // Verificar si hay errores detallados de validación OCR
-        if (
-          responseData.errors &&
-          Array.isArray(responseData.errors) &&
-          responseData.errors.length > 0
-        ) {
-          setErrorMessages(responseData.errors);
-          setCreationStatus("error");
-        } else {
-          setErrorMessages([
-            responseData.message || "No se pudo crear la propiedad",
-          ]);
-          setCreationStatus("error");
-        }
-
-        return false;
+      if (
+        createdProperty &&
+        createdProperty.latitude &&
+        createdProperty.longitude
+      ) {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: createdProperty.latitude as number,
+          longitude: createdProperty.longitude as number,
+        }));
       }
+
+      setCreationStatus("success");
+      toast({
+          title: "Éxito",
+          description: "Propiedad creada y pendiente de validación de documentos.",
+      });
+      return true;
     } catch (error) {
       console.error("❌ Error de red:", error);
       setErrorMessages(["Error de conexión. Verifica tu conexión a internet."]);
