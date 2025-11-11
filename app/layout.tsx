@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { GoogleMapsProvider } from "@/contexts/GoogleMapsContext";
 import { AuthGuard } from "@/components/ui/AuthGuard";
 
 export const metadata: Metadata = {
@@ -18,7 +19,9 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <AuthProvider>
-          <AuthGuard>{children}</AuthGuard>
+          <GoogleMapsProvider>
+            <AuthGuard>{children}</AuthGuard>
+          </GoogleMapsProvider>
         </AuthProvider>
       </body>
     </html>

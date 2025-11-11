@@ -22,12 +22,22 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (isAuthenticated && user) {
       // Redirecciones para usuarios autenticados
-      if (pathname === "/" || pathname === "/login" || pathname === "/register") {
+      if (pathname === "/login" || pathname === "/register") {
+        // Solo redirigir si tenemos un usuario válido
         if (isLandlord(user)) {
           console.log("Redirigiendo landlord a su perfil");
           router.push("/profile/landlord");
         } else {
           console.log("Redirigiendo estudiante a búsqueda");
+          router.push("/search");
+        }
+      } else if (pathname === "/") {
+        // Desde la página principal, redirigir según el tipo de usuario
+        if (isLandlord(user)) {
+          console.log("Redirigiendo landlord desde home a su perfil");
+          router.push("/profile/landlord");
+        } else {
+          console.log("Redirigiendo estudiante desde home a búsqueda");
           router.push("/search");
         }
       } else if (isLandlord(user) && pathname === "/search") {
@@ -37,7 +47,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     } else {
       // Redirecciones para usuarios no autenticados
       const protectedRoutes = ["/profile", "/profile/landlord", "/property"];
-      if (protectedRoutes.some(route => pathname.startsWith(route))) {
+      const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+      
+      // Solo redirigir a login si estamos en una ruta protegida y NO estamos ya en login o register
+      if (isProtectedRoute && pathname !== "/login" && pathname !== "/register") {
         console.log("Usuario no autenticado intentando acceder a ruta protegida");
         router.push("/login");
       }

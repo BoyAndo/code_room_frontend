@@ -12,6 +12,7 @@ interface FileUploadsFormProps {
   onUtilityBillChange: (file: File | null, preview: string | null) => void;
   onImagesChange: (files: File[], previews: string[]) => void;
   onRemoveImage?: (index: number) => void;
+  hideUtilityBill?: boolean; // Nueva prop para ocultar el campo de cuenta de servicios
 }
 
 export const FileUploadsForm = memo(function FileUploadsForm({
@@ -22,6 +23,7 @@ export const FileUploadsForm = memo(function FileUploadsForm({
   onUtilityBillChange,
   onImagesChange,
   onRemoveImage,
+  hideUtilityBill = false, // Por defecto no se oculta
 }: FileUploadsFormProps) {
   const handleUtilityBillChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,13 +83,15 @@ export const FileUploadsForm = memo(function FileUploadsForm({
 
   const handleRemoveImage = useCallback(
     (index: number) => {
-      const newFiles = propertyImages.filter((_, i) => i !== index);
-      const newPreviews = imagesPreviews.filter((_, i) => i !== index);
-      onImagesChange(newFiles, newPreviews);
-
+      // Si hay un handler externo, llamarlo PRIMERO con el índice correcto
       if (onRemoveImage) {
         onRemoveImage(index);
       }
+      
+      // Luego actualizar los arrays locales
+      const newFiles = propertyImages.filter((_, i) => i !== index);
+      const newPreviews = imagesPreviews.filter((_, i) => i !== index);
+      onImagesChange(newFiles, newPreviews);
     },
     [propertyImages, imagesPreviews, onImagesChange, onRemoveImage]
   );
@@ -97,31 +101,33 @@ export const FileUploadsForm = memo(function FileUploadsForm({
       <h3 className="text-lg font-medium text-gray-900 border-b pb-2">
         Documentos Requeridos
       </h3>
-      <div className="grid grid-cols-2 gap-6">
-        <div>
-          <Label htmlFor="utilityBill">Cuenta de servicios *</Label>
-          <Input
-            id="utilityBill"
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={handleUtilityBillChange}
-            className="border-sage/30 focus:border-sage focus:ring-sage/20"
-          />
-          {utilityBillPreview && (
-            <div className="mt-2">
-              <img
-                src={utilityBillPreview}
-                alt="Preview cuenta de servicios"
-                className="w-24 h-24 object-cover rounded border"
-              />
-            </div>
-          )}
-          {utilityBill && (
-            <p className="text-sm text-gray-600 mt-1">
-              Archivo: {utilityBill.name}
-            </p>
-          )}
-        </div>
+      <div className={`grid ${hideUtilityBill ? 'grid-cols-1' : 'grid-cols-2'} gap-6`}>
+        {!hideUtilityBill && (
+          <div>
+            <Label htmlFor="utilityBill">Cuenta de servicios *</Label>
+            <Input
+              id="utilityBill"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={handleUtilityBillChange}
+              className="border-sage/30 focus:border-sage focus:ring-sage/20"
+            />
+            {utilityBillPreview && (
+              <div className="mt-2">
+                <img
+                  src={utilityBillPreview}
+                  alt="Preview cuenta de servicios"
+                  className="w-24 h-24 object-cover rounded border"
+                />
+              </div>
+            )}
+            {utilityBill && (
+              <p className="text-sm text-gray-600 mt-1">
+                Archivo: {utilityBill.name}
+              </p>
+            )}
+          </div>
+        )}
 
         <div>
           <Label htmlFor="propertyImages">Imágenes * (1-5 fotos)</Label>

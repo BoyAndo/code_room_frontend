@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { apiFetch } from "@/lib/api-client";
 import {
   User,
   Mail,
@@ -85,18 +86,12 @@ export const LandlordProfile = () => {
       formData.append("photo", file);
 
       const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
-      const response = await fetch(`${API_URL}/profile/landlord/photo`, {
+      const response = await apiFetch(`${API_URL}/profile/landlord/photo`, {
         method: "POST",
         body: formData,
-        credentials: "include",
       });
 
-      console.log("Response status:", response.status);
-      console.log("Response URL:", response.url);
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
         throw new Error("Error al subir la foto");
       }
 
@@ -131,12 +126,8 @@ export const LandlordProfile = () => {
       const API_URL =
         process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
 
-      const response = await fetch(`${API_URL}/user/landlord`, {
+      const response = await apiFetch(`${API_URL}/user/landlord`, {
         method: "DELETE",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
 
       if (!response.ok) {
@@ -380,40 +371,6 @@ export const LandlordProfile = () => {
               </a>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Quick Stats */}
-      <Card className="bg-white backdrop-blur-sm border-sage/20 shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-neutral-800">
-            Estadísticas de Propiedades
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="p-4 bg-cream/20 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <Building2 className="h-5 w-5 text-sage" />
-                <span className="text-2xl font-bold text-sage">4</span>
-              </div>
-              <p className="text-sm text-neutral-600">Propiedades Activas</p>
-            </div>
-            <div className="p-4 bg-cream/20 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <DollarSign className="h-5 w-5 text-sage" />
-                <span className="text-2xl font-bold text-sage">$2.5M</span>
-              </div>
-              <p className="text-sm text-neutral-600">Ingresos Mensuales</p>
-            </div>
-            <div className="p-4 bg-cream/20 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <Mail className="h-5 w-5 text-sage" />
-                <span className="text-2xl font-bold text-sage">12</span>
-              </div>
-              <p className="text-sm text-neutral-600">Mensajes Nuevos</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
 

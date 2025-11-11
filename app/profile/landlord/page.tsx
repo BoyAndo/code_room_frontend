@@ -18,8 +18,19 @@ import { FileUploadsForm } from "@/components/landlord/FileUploadsForm";
 import { PropertyCreationLoader } from "@/components/landlord/PropertyCreationLoader";
 import { useProperties } from "@/hooks/useProperties";
 import { usePropertyForm } from "@/hooks/usePropertyForm";
+import { usePropertyEdit } from "@/hooks/usePropertyEdit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Plus,
   Search,
@@ -65,15 +76,22 @@ export default function LandlordDashboard() {
   // 💡 CHAT/NOTIFICACIÓN: Estado para el conteo de mensajes no leídos
   const [unreadMessages, setUnreadMessages] = useState(3);
 
+  // 🔧 Estado para edición de propiedades
+  const [propertyToEdit, setPropertyToEdit] = useState<Property | null>(null);
+
   // Estados y hooks necesarios para las diferentes vistas
   const {
     properties,
     availableAmenities,
     searchTerm,
     filteredProperties,
+    propertyToDelete,
+    isDeleting,
     setSearchTerm,
     fetchProperties,
     requestDeleteProperty,
+    confirmDeleteProperty,
+    cancelDelete,
   } = useProperties();
 
   const {
@@ -95,6 +113,28 @@ export default function LandlordDashboard() {
     closeModal,
     createProperty,
   } = usePropertyForm();
+
+  // 🔧 Hook para edición de propiedades
+  const {
+    formData: editFormData,
+    imagesPreviews: editImagesPreviews,
+    existingImages,
+    isUpdating,
+    updateStatus,
+    errorMessages: editErrorMessages,
+    handleFieldChange: handleEditFieldChange,
+    handleAmenityToggle: handleEditAmenityToggle,
+    handleImagesChange: handleEditImagesChange,
+    handleRemoveImage: handleEditRemoveImage,
+    updateProperty,
+    closeModal: closeEditModal,
+  } = usePropertyEdit(propertyToEdit);
+
+  // 🔧 Función para iniciar la edición de una propiedad
+  const handleEditProperty = (property: Property) => {
+    setPropertyToEdit(property);
+    handleViewChange("edit-property");
+  };
 
   // Efecto para cargar las propiedades cuando sea necesario
   useEffect(() => {
@@ -127,6 +167,9 @@ export default function LandlordDashboard() {
         break;
       case "create-property":
         router.push("/profile/landlord?view=create-property");
+        break;
+      case "edit-property":
+        router.push("/profile/landlord?view=edit-property");
         break;
       case "chat": // 💡 CHAT/NOTIFICACIÓN: Nueva vista de chat
         router.push("/profile/landlord?view=chat");
@@ -272,9 +315,7 @@ export default function LandlordDashboard() {
                     <PropertyCard
                       key={property.id}
                       property={property}
-                      onEdit={() => {
-                        /* lógica de edición */
-                      }}
+                      onEdit={() => handleEditProperty(property)}
                       onDelete={() => requestDeleteProperty(property)}
                     />
                   ))}
@@ -323,9 +364,7 @@ export default function LandlordDashboard() {
                 <PropertyCard
                   key={property.id}
                   property={property}
-                  onEdit={() => {
-                    /* lógica de edición */
-                  }}
+                  onEdit={() => handleEditProperty(property)}
                   onDelete={() => requestDeleteProperty(property)}
                 />
               ))}
@@ -400,6 +439,155 @@ export default function LandlordDashboard() {
           </div>
         );
 
+      case "edit-property":
+        // Vista de edición de propiedad
+        if (!propertyToEdit) {
+          return (
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-lg border border-neutral-200 p-8 text-center">
+                <p className="text-neutral-600">No hay propiedad seleccionada para editar</p>
+                <Button
+                  onClick={() => handleViewChange("properties")}
+                  className="mt-4 bg-sage hover:bg-sage/90 text-white"
+                >
+                  Ver Propiedades
+                </Button>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-lg border border-neutral-200 p-8">
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-neutral-800">
+                  Editar Propiedad
+                </h1>
+                <p className="text-neutral-600">
+                  Actualiza la información de tu propiedad
+                </p>
+                <p className="text-sm text-neutral-500 mt-2">
+                  ⚠️ Nota: La dirección, región y comuna no se pueden modificar ya que fueron validadas con tu cuenta de servicios.
+                </p>
+              </div>
+
+              <form className="space-y-8">
+                <BasicInfoForm
+                  formData={editFormData}
+                  onFieldChange={handleEditFieldChange}
+                />
+
+                {/* Mostrar ubicación como solo lectura */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 border-b pb-2">
+                    Ubicación
+                  </h3>
+                  
+                  {/* Información de dirección no editable */}
+                  <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
+                    <p className="text-sm text-neutral-600 mb-2">
+                      <strong>Dirección:</strong> {propertyToEdit.address}
+                    </p>
+                    <p className="text-sm text-neutral-600 mb-2">
+                      <strong>Comuna:</strong> {
+                        typeof propertyToEdit.comuna === 'string' 
+                          ? propertyToEdit.comuna 
+                          : (propertyToEdit.comuna as any)?.name || propertyToEdit.comunaName || 'N/A'
+                      }
+                    </p>
+                    <p className="text-sm text-neutral-600 mb-2">
+                      <strong>Región:</strong> {
+                        typeof propertyToEdit.region === 'string' 
+                          ? propertyToEdit.region 
+                          : (propertyToEdit.region as any)?.name || propertyToEdit.regionName || 'N/A'
+                      }
+                    </p>
+                    <p className="text-xs text-neutral-500 italic mt-2">
+                      ⚠️ La dirección no se puede modificar (validada con cuenta de servicios)
+                    </p>
+                  </div>
+
+                  {/* Mapa editable para ajustar coordenadas */}
+                  <LocationForm
+                    formData={{
+                      ...editFormData,
+                      address: propertyToEdit.address,
+                      latitude: editFormData.latitude ?? null,
+                      longitude: editFormData.longitude ?? null,
+                    }}
+                    selectedRegionId={propertyToEdit.regionId}
+                    selectedComunaId={propertyToEdit.comunaId}
+                    onFieldChange={handleEditFieldChange}
+                    onRegionChange={() => {}} // No se pueden cambiar
+                    onComunaChange={() => {}} // No se pueden cambiar
+                    readOnlyAddress={true} // Nueva prop para hacer el address readonly
+                  />
+                </div>
+
+                <AmenitiesForm
+                  amenities={availableAmenities}
+                  selectedAmenities={editFormData.amenities}
+                  onAmenityToggle={handleEditAmenityToggle}
+                />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 border-b pb-2">
+                    Imágenes
+                  </h3>
+                  <p className="text-sm text-neutral-600">
+                    Imágenes actuales: {existingImages.length}
+                  </p>
+                  <FileUploadsForm
+                    utilityBill={null}
+                    propertyImages={editFormData.propertyImages || []}
+                    utilityBillPreview={null}
+                    imagesPreviews={editImagesPreviews}
+                    onUtilityBillChange={() => {}} // No se puede cambiar en edición
+                    onImagesChange={handleEditImagesChange}
+                    onRemoveImage={handleEditRemoveImage} // Pasar el handler de eliminación
+                    hideUtilityBill={true} // Ocultar el campo de cuenta de servicios
+                  />
+                </div>
+              </form>
+
+              <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-neutral-200">
+                <Button
+                  variant="outline"
+                  onClick={() => handleViewChange("properties")}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={async () => {
+                    const success = await updateProperty();
+                    if (success) {
+                      await fetchProperties();
+                      handleViewChange("properties");
+                    }
+                  }}
+                  disabled={isUpdating}
+                  className="bg-sage hover:bg-sage/90 text-white"
+                >
+                  {isUpdating ? "Actualizando..." : "Guardar Cambios"}
+                </Button>
+              </div>
+
+              {/* Mensajes de error */}
+              {editErrorMessages.length > 0 && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800 font-semibold mb-2">Errores:</p>
+                  <ul className="list-disc list-inside text-red-700">
+                    {editErrorMessages.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
       case "chat": // 💡 CHAT/NOTIFICACIÓN: Nuevo contenido para la vista de chat
         return <LandlordChatsPage />; // 🚨 Usa el componente real
 
@@ -431,6 +619,29 @@ export default function LandlordDashboard() {
           onClose={closeModal}
         />
       )}
+
+      {/* Modal de confirmación de eliminación */}
+      <AlertDialog open={!!propertyToDelete} onOpenChange={(open) => !open && cancelDelete()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente la propiedad{" "}
+              <strong>&quot;{propertyToDelete?.title}&quot;</strong> y todos sus datos asociados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteProperty}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

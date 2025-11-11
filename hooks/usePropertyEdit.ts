@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { PropertyFormData, Property } from "@/types/property";
 import { useAuth, isLandlord } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/api-client";
 
 export function usePropertyEdit(property: Property | null) {
   const { user } = useAuth();
@@ -26,10 +27,13 @@ export function usePropertyEdit(property: Property | null) {
     amenities: [],
     utilityBill: null,
     propertyImages: [],
+    latitude: null,
+    longitude: null,
   });
 
   const [imagesPreviews, setImagesPreviews] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]); // URLs de imágenes a eliminar
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [updateStatus, setUpdateStatus] = useState<
     "loading" | "success" | "error" | null
@@ -48,13 +52,17 @@ export function usePropertyEdit(property: Property | null) {
         bedrooms: property.bedrooms || 1,
         bathrooms: property.bathrooms || 1,
         squareMeters: property.squareMeters?.toString() || "",
-        regionName: property.region || "",
-        comunaName: property.comuna || "",
+        // Manejar comuna y region cuando son objetos o strings
+        regionName: typeof property.region === 'string' ? property.region : (property.region as any)?.name || property.regionName || "",
+        comunaName: typeof property.comuna === 'string' ? property.comuna : (property.comuna as any)?.name || property.comunaName || "",
         regionId: property.regionId || 1,
         comunaId: property.comunaId || 1,
         amenities: property.amenities?.map((a) => a.id) || [],
         utilityBill: null,
         propertyImages: [],
+        // Asegurar que latitude y longitude sean números
+        latitude: property.latitude ? Number(property.latitude) : null,
+        longitude: property.longitude ? Number(property.longitude) : null,
       });
 
       // Cargar imágenes existentes
@@ -122,12 +130,46 @@ export function usePropertyEdit(property: Property | null) {
   // Handler para eliminar una imagen específica
   const handleRemoveImage = useCallback(
     (index: number) => {
+      console.log("🗑️ Eliminando imagen en índice:", index);
+      console.log("📊 Estado actual - Existentes:", existingImages.length, "Nuevas:", formData.propertyImages.length);
+      
+      // Verificar si el índice corresponde a una imagen existente o nueva
+      if (index < existingImages.length) {
+        // Es una imagen existente, agregar a la lista de eliminación
+        const imageToDelete = existingImages[index];
+        console.log("🗑️ Imagen existente a eliminar:", imageToDelete);
+        
+        setImagesToDelete(prev => {
+          const updated = [...prev, imageToDelete];
+          console.log("📝 Array de imágenes a eliminar actualizado:", updated);
+          return updated;
+        });
+        
+        // Remover de existingImages
+        setExistingImages(prev => prev.filter((_, i) => i !== index));
+        
+        // Remover del preview correspondiente
+        setImagesPreviews(prev => prev.filter((_, i) => i !== index));
+      } else {
+        // Es una imagen nueva (File), solo remover del preview y formData
+        const newImageIndex = index - existingImages.length;
+        console.log("📸 Eliminando imagen nueva en índice relativo:", newImageIndex);
+        
+        // Remover de propertyImages (formData)
+        handleFieldChange("propertyImages", 
+          formData.propertyImages.filter((_, i) => i !== newImageIndex)
+        );
+        
+        // Remover del preview
+        setImagesPreviews(prev => prev.filter((_, i) => i !== index));
+      }
+
       toast({
         title: "Imagen eliminada",
         description: "La imagen ha sido removida de la propiedad",
       });
     },
-    [toast]
+    [existingImages, formData.propertyImages, handleFieldChange, toast]
   );
 
   // Función para actualizar la propiedad
@@ -165,6 +207,14 @@ export function usePropertyEdit(property: Property | null) {
       submitData.append("landlordId", user.id.toString());
       submitData.append("landlordName", user.landlordName);
 
+      // Agregar coordenadas si existen
+      if (formData.latitude !== null && formData.latitude !== undefined) {
+        submitData.append("latitude", formData.latitude.toString());
+      }
+      if (formData.longitude !== null && formData.longitude !== undefined) {
+        submitData.append("longitude", formData.longitude.toString());
+      }
+
       // Agregar amenidades como JSON string
       if (formData.amenities && formData.amenities.length > 0) {
         submitData.append("amenities", JSON.stringify(formData.amenities));
@@ -173,25 +223,33 @@ export function usePropertyEdit(property: Property | null) {
       // NO incluimos utilityBill - no se puede cambiar en edición
       // La dirección está validada con la cuenta de servicios original
 
+      // Agregar imágenes a eliminar (URLs de imágenes existentes)
+      if (imagesToDelete.length > 0) {
+        console.log("🗑️ Imágenes a eliminar:", imagesToDelete);
+        submitData.append("imagesToDelete", JSON.stringify(imagesToDelete));
+      } else {
+        console.log("ℹ️ No hay imágenes para eliminar");
+      }
+
       // Agregar nuevas imágenes solo si hay
       if (formData.propertyImages && formData.propertyImages.length > 0) {
+        console.log(`📸 Agregando ${formData.propertyImages.length} nuevas imágenes`);
         formData.propertyImages.forEach((image) => {
           submitData.append("propertyImages", image);
         });
       }
 
-      const response = await fetch(
+      const response = await apiFetch(
         `http://localhost:3002/api/properties/${property.id}`,
         {
           method: "PUT",
-          credentials: "include",
           body: submitData,
         }
       );
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const data = await response.json();
+        
         // Verificar si hay errores detallados
         if (
           data.errors &&
@@ -208,6 +266,8 @@ export function usePropertyEdit(property: Property | null) {
         }
         return false;
       }
+
+      const data = await response.json();
 
       setUpdateStatus("success");
       return true;
