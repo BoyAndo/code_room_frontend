@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, isLandlord } from "@/contexts/AuthContext";
 import { LandlordProfile } from "@/components/landlord/LandlordProfile";
 import { Sidebar } from "@/components/landlord/Sidebar";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Property } from "@/types/property";
 import LandlordChatsPage from "@/components/landlord/LandlordChatsPage";
 
@@ -72,9 +72,23 @@ export default function LandlordDashboard() {
   const searchParams = useSearchParams();
   const currentView = searchParams.get("view") || "dashboard";
   const SidebarComponent: any = Sidebar;
+  const currentUserId = user?.id; // ID del landlord actual
 
   // 💡 CHAT/NOTIFICACIÓN: Estado para el conteo de mensajes no leídos
-  const [unreadMessages, setUnreadMessages] = useState(3);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  // 💡 Función para obtener el conteo de mensajes no leídos
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const response = await fetch("/api/chat/unread-count");
+      if (response.ok) {
+        const data = await response.json();
+        setUnreadMessages(data.unreadCount || 0);
+      }
+    } catch (error) {
+      console.error("Error al obtener mensajes no leídos:", error);
+    }
+  }, []);
 
   // 🔧 Estado para edición de propiedades
   const [propertyToEdit, setPropertyToEdit] = useState<Property | null>(null);
@@ -141,9 +155,11 @@ export default function LandlordDashboard() {
     if (currentView === "dashboard" || currentView === "properties") {
       fetchProperties();
     }
-    // 💡 CHAT/NOTIFICACIÓN: En un entorno real, aquí se llamaría a una API para obtener el conteo de mensajes no leídos
-    // Ejemplo: fetchUnreadMessagesCount().then(count => setUnreadMessages(count));
-  }, [currentView]);
+    // 💡 CHAT/NOTIFICACIÓN: Cargar el conteo real de mensajes no leídos
+    if (currentView === "dashboard" || currentView === "chat") {
+      fetchUnreadCount();
+    }
+  }, [currentView, fetchProperties, fetchUnreadCount]);
 
   // Loading state
   if (!user || !isLandlord(user)) {
@@ -173,8 +189,7 @@ export default function LandlordDashboard() {
         break;
       case "chat": // 💡 CHAT/NOTIFICACIÓN: Nueva vista de chat
         router.push("/profile/landlord?view=chat");
-        // Al entrar al chat, se asume que los mensajes se leen
-        setUnreadMessages(0);
+        // No reseteamos a 0 manualmente, el useEffect lo actualizará
         break;
       case "profile":
         router.push("/profile/landlord?view=profile");
@@ -445,7 +460,9 @@ export default function LandlordDashboard() {
           return (
             <div className="max-w-4xl mx-auto">
               <div className="bg-white rounded-lg border border-neutral-200 p-8 text-center">
-                <p className="text-neutral-600">No hay propiedad seleccionada para editar</p>
+                <p className="text-neutral-600">
+                  No hay propiedad seleccionada para editar
+                </p>
                 <Button
                   onClick={() => handleViewChange("properties")}
                   className="mt-4 bg-sage hover:bg-sage/90 text-white"
@@ -468,7 +485,8 @@ export default function LandlordDashboard() {
                   Actualiza la información de tu propiedad
                 </p>
                 <p className="text-sm text-neutral-500 mt-2">
-                  ⚠️ Nota: La dirección, región y comuna no se pueden modificar ya que fueron validadas con tu cuenta de servicios.
+                  ⚠️ Nota: La dirección, región y comuna no se pueden modificar
+                  ya que fueron validadas con tu cuenta de servicios.
                 </p>
               </div>
 
@@ -483,28 +501,31 @@ export default function LandlordDashboard() {
                   <h3 className="text-lg font-medium text-gray-900 border-b pb-2">
                     Ubicación
                   </h3>
-                  
+
                   {/* Información de dirección no editable */}
                   <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
                     <p className="text-sm text-neutral-600 mb-2">
                       <strong>Dirección:</strong> {propertyToEdit.address}
                     </p>
                     <p className="text-sm text-neutral-600 mb-2">
-                      <strong>Comuna:</strong> {
-                        typeof propertyToEdit.comuna === 'string' 
-                          ? propertyToEdit.comuna 
-                          : (propertyToEdit.comuna as any)?.name || propertyToEdit.comunaName || 'N/A'
-                      }
+                      <strong>Comuna:</strong>{" "}
+                      {typeof propertyToEdit.comuna === "string"
+                        ? propertyToEdit.comuna
+                        : (propertyToEdit.comuna as any)?.name ||
+                          propertyToEdit.comunaName ||
+                          "N/A"}
                     </p>
                     <p className="text-sm text-neutral-600 mb-2">
-                      <strong>Región:</strong> {
-                        typeof propertyToEdit.region === 'string' 
-                          ? propertyToEdit.region 
-                          : (propertyToEdit.region as any)?.name || propertyToEdit.regionName || 'N/A'
-                      }
+                      <strong>Región:</strong>{" "}
+                      {typeof propertyToEdit.region === "string"
+                        ? propertyToEdit.region
+                        : (propertyToEdit.region as any)?.name ||
+                          propertyToEdit.regionName ||
+                          "N/A"}
                     </p>
                     <p className="text-xs text-neutral-500 italic mt-2">
-                      ⚠️ La dirección no se puede modificar (validada con cuenta de servicios)
+                      ⚠️ La dirección no se puede modificar (validada con cuenta
+                      de servicios)
                     </p>
                   </div>
 
@@ -621,17 +642,23 @@ export default function LandlordDashboard() {
       )}
 
       {/* Modal de confirmación de eliminación */}
-      <AlertDialog open={!!propertyToDelete} onOpenChange={(open) => !open && cancelDelete()}>
+      <AlertDialog
+        open={!!propertyToDelete}
+        onOpenChange={(open) => !open && cancelDelete()}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente la propiedad{" "}
-              <strong>&quot;{propertyToDelete?.title}&quot;</strong> y todos sus datos asociados.
+              Esta acción no se puede deshacer. Se eliminará permanentemente la
+              propiedad <strong>&quot;{propertyToDelete?.title}&quot;</strong> y
+              todos sus datos asociados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteProperty}
               disabled={isDeleting}

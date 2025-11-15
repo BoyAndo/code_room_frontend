@@ -52,10 +52,8 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
-// 🛑 INICIO: SETUP DE PUSHER CLIENT 🛑
-// Asegúrate de que 'pusherClient' se inicialice y esté disponible.
-declare const pusherClient: any;
-// 🛑 FIN: SETUP DE PUSHER CLIENT 🛑
+// ✅ IMPORTAR PUSHER CLIENT CORRECTAMENTE
+import { pusherClient } from "@/lib/pusher.client";
 
 // --- INTERFACES CRÍTICAS ---
 
@@ -138,8 +136,10 @@ interface Property {
   title: string;
   description: string;
   address: string;
-  comuna: string;
-  region: string;
+  comuna: string | { id: number; name: string }; // Puede ser string o objeto
+  region: string | { id: number; name: string }; // Puede ser string o objeto
+  comunaName?: string; // Nombre de la comuna como string
+  regionName?: string; // Nombre de la región como string
   propertyType: string;
   bedrooms: number;
   bathrooms: number;
@@ -534,6 +534,18 @@ export default function SearchPage() {
   // 🛑 NUEVO ESTADO: Usuario logueado (Para Pusher y lógica de chat)
   const [user, setUser] = useState<LoggedInUser | null>(null);
 
+  // ✅ HELPER: Obtener nombre de comuna
+  const getComunaName = (property: Property): string => {
+    if (typeof property.comuna === "string") {
+      return property.comuna;
+    } else if (property.comuna && typeof property.comuna === "object") {
+      return property.comuna.name;
+    } else if (property.comunaName) {
+      return property.comunaName;
+    }
+    return "";
+  };
+
   const clearFilters = () => {
     setSelectedCity("");
     setPropertyType("");
@@ -544,10 +556,19 @@ export default function SearchPage() {
   const fetchProperties = useCallback(async () => {
     try {
       setLoading(true);
-      
-      console.log('🔍 =========================');
-      console.log('🔍 FETCH PROPERTIES CALLED');
-      console.log('🔍 Filters - City:', selectedCity, 'Type:', propertyType, 'Price:', priceRange, 'Sort:', sortOrder);
+
+      console.log("🔍 =========================");
+      console.log("🔍 FETCH PROPERTIES CALLED");
+      console.log(
+        "🔍 Filters - City:",
+        selectedCity,
+        "Type:",
+        propertyType,
+        "Price:",
+        priceRange,
+        "Sort:",
+        sortOrder
+      );
 
       const params = new URLSearchParams();
 
@@ -583,45 +604,67 @@ export default function SearchPage() {
       // Usar apiFetch que maneja automáticamente el refresh de tokens
       const response = await apiFetch(url);
 
-      console.log('🔍 Response status:', response.status);
-      console.log('🔍 Response ok:', response.ok);
+      console.log("🔍 Response status:", response.status);
+      console.log("🔍 Response ok:", response.ok);
 
       if (!response.ok) {
-        console.error('❌ Response not OK:', response.status, response.statusText);
+        console.error(
+          "❌ Response not OK:",
+          response.status,
+          response.statusText
+        );
         const errorText = await response.text();
-        console.error('❌ Error body:', errorText);
+        console.error("❌ Error body:", errorText);
         setProperties([]);
         return;
       }
 
       const result = await response.json();
-      console.log('🔍 Full API Response:', result);
-      console.log('🔍 Type of result:', typeof result);
-      console.log('🔍 Is result an array?', Array.isArray(result));
-      console.log('🔍 result.data:', result.data);
-      console.log('🔍 result.properties:', result.properties);
-      
+      console.log("🔍 Full API Response:", result);
+      console.log("🔍 Type of result:", typeof result);
+      console.log("🔍 Is result an array?", Array.isArray(result));
+      console.log("🔍 result.data:", result.data);
+      console.log("🔍 result.properties:", result.properties);
+
       const data = result.data?.properties || result.properties || result;
-      console.log('🔍 Extracted properties (before transform):', data);
-      console.log('🔍 Data length:', data?.length);
+      console.log("🔍 Extracted properties (before transform):", data);
+      console.log("🔍 Data length:", data?.length);
+
+      // ✅ DEBUG: Ver la primera propiedad con detalle
+      if (data && data.length > 0) {
+        console.log("🔍 Primera propiedad completa:", data[0]);
+        console.log("🔍 Comuna de la primera propiedad:", data[0].comuna);
+        console.log(
+          "🔍 ComunaName de la primera propiedad:",
+          data[0].comunaName
+        );
+        console.log("🔍 Region de la primera propiedad:", data[0].region);
+        console.log(
+          "🔍 RegionName de la primera propiedad:",
+          data[0].regionName
+        );
+      }
 
       if (Array.isArray(data)) {
         // Transformar las propiedades para asegurar que tengan el array de images
         const transformedProperties = data.map((property: any) => ({
           ...property,
           // Manejar imágenes - el backend puede devolver 'images', 'propertyImages' o 'propertyimage'
-          images: 
+          images:
             property.images || // Backend devuelve directamente 'images'
             property.propertyImages?.map((img: any) => img.imageUrl) || // Fallback a propertyImages
             property.propertyimage?.map((img: any) => img.imageUrl) || // Fallback a propertyimage (lowercase)
             [],
         }));
-        console.log('🔍 Transformed properties:', transformedProperties);
-        console.log('🔍 Setting properties to state with length:', transformedProperties.length);
+        console.log("🔍 Transformed properties:", transformedProperties);
+        console.log(
+          "🔍 Setting properties to state with length:",
+          transformedProperties.length
+        );
         setProperties(transformedProperties as Property[]);
-        console.log('✅ Properties set successfully!');
+        console.log("✅ Properties set successfully!");
       } else {
-        console.error('❌ Data is not an array, setting empty array');
+        console.error("❌ Data is not an array, setting empty array");
         setProperties([]);
       }
     } catch (error) {
@@ -766,33 +809,53 @@ export default function SearchPage() {
 
   // 🛑 INICIO: EFECTO PARA LA SUSCRIPCIÓN EN TIEMPO REAL CON PUSHER 🛑
   useEffect(() => {
-    if (
-      !selectedProperty ||
-      !user ||
-      typeof (window as any).pusherClient === "undefined"
-    ) {
+    if (!selectedProperty || !user || !pusherClient) {
+      console.log("⚠️ Pusher - Condiciones no cumplidas:", {
+        selectedProperty: !!selectedProperty,
+        user: !!user,
+        pusherClient: !!pusherClient,
+      });
       return;
     }
 
-    // Usamos el rol del usuario logueado para la comparación en el handler
+    // Usamos el rol del usuario loggeado para la comparación en el handler
     const isCurrentUserStudent = user.role === "student";
     const senderId = user.id;
     const recipientId = selectedProperty.landlordId;
     const propertyId = selectedProperty.id;
 
-    const chatRoomId = `private-chat-prop-${propertyId}-${senderId}-${recipientId}`;
+    // ✅ CORRECCIÓN: Generar el chatRoomId igual que en el backend (IDs ordenados)
+    const sortedIds = [Number(senderId), Number(recipientId)]
+      .sort((a, b) => a - b)
+      .join("-");
+    const chatRoomId = `private-chat-prop-${propertyId}-${sortedIds}`;
 
-    const pusherClient = (window as any).pusherClient;
+    console.log("🔔 Pusher - Suscribiéndose al canal:", chatRoomId);
+    console.log("🔔 Pusher - Usuario actual:", {
+      id: senderId,
+      role: user.role,
+      isStudent: isCurrentUserStudent,
+    });
+
     const channel = pusherClient.subscribe(chatRoomId);
 
     // ✅ USAMOS LA INTERFAZ Y APLICAMOS LA LÓGICA DE ROL
     const handleNewMessage = (data: APIChatMessage) => {
+      console.log("📨 Pusher - Nuevo mensaje recibido:", data);
+      console.log("📨 Pusher - Rol del remitente:", data.sender_role);
+      console.log(
+        "📨 Pusher - Usuario actual es estudiante:",
+        isCurrentUserStudent
+      );
+
       const newMessage: ChatMessageState = {
         id: data.id,
         text: data.content,
         // 🔑 CORRECCIÓN CRÍTICA: Lógica basada en el rol del remitente del mensaje
         sender:
           isCurrentUserStudent && data.sender_role === "STUDENT"
+            ? "user"
+            : !isCurrentUserStudent && data.sender_role === "LANDLORD"
             ? "user"
             : "other",
         timestamp: new Date(data.created_at).toLocaleTimeString([], {
@@ -801,12 +864,25 @@ export default function SearchPage() {
         }),
         created_at: data.created_at,
       };
-      setChatMessages((prev) => [...prev, newMessage]);
+
+      console.log("📨 Pusher - Mensaje procesado:", newMessage);
+      setChatMessages((prev) => {
+        // Evitar duplicados
+        if (prev.some((msg) => msg.id === newMessage.id)) {
+          console.log("⚠️ Pusher - Mensaje duplicado, ignorando");
+          return prev;
+        }
+        console.log("✅ Pusher - Agregando mensaje al estado");
+        return [...prev, newMessage];
+      });
     };
 
     channel.bind("message-sent", handleNewMessage);
 
+    console.log("✅ Pusher - Suscripción completada al canal:", chatRoomId);
+
     return () => {
+      console.log("🔌 Pusher - Desuscribiéndose del canal:", chatRoomId);
       channel.unbind("message-sent", handleNewMessage);
       pusherClient.unsubscribe(chatRoomId);
     };
@@ -823,9 +899,9 @@ export default function SearchPage() {
   // 🛑 FIN NUEVO useEffect 🛑
 
   // Debug: Log properties state
-  console.log('🎨 RENDER - Properties length:', properties?.length);
-  console.log('🎨 RENDER - Loading:', loading);
-  console.log('🎨 RENDER - Properties:', properties);
+  console.log("🎨 RENDER - Properties length:", properties?.length);
+  console.log("🎨 RENDER - Loading:", loading);
+  console.log("🎨 RENDER - Properties:", properties);
 
   return (
     <div className="min-h-screen code-room-subtle-pattern">
@@ -1224,7 +1300,7 @@ export default function SearchPage() {
                               {property.title}
                             </h4>
                             <p className="text-sm text-neutral-600 mb-2">
-                              {property.comuna} • $
+                              {getComunaName(property)} • $
                               {parseInt(property.monthlyRent).toLocaleString()}
                               /mes
                             </p>
