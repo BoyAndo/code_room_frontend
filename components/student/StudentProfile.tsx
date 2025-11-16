@@ -87,10 +87,16 @@ export const StudentProfile = () => {
       const formData = new FormData();
       formData.append("photo", file);
 
-      const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
+      const API_URL =
+        process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
       console.log("Uploading to:", `${API_URL}/profile/student/photo`);
+<<<<<<< Updated upstream
       
       const response = await fetch(`${API_URL}/profile/student/photo`, {
+=======
+
+      const response = await apiFetch(`${API_URL}/profile/student/photo`, {
+>>>>>>> Stashed changes
         method: "POST",
         body: formData,
         credentials: "include",
@@ -98,7 +104,7 @@ export const StudentProfile = () => {
 
       console.log("Response status:", response.status);
       console.log("Response URL:", response.url);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error response:", errorText);
@@ -133,9 +139,16 @@ export const StudentProfile = () => {
   const handleDeleteAccount = async () => {
     try {
       setIsDeleting(true);
+<<<<<<< Updated upstream
       
       const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
       const response = await fetch(`${API_URL}/user/student`, {
+=======
+
+      const API_URL =
+        process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
+      const response = await apiFetch(`${API_URL}/user/student`, {
+>>>>>>> Stashed changes
         method: "DELETE",
         credentials: "include",
       });
@@ -314,11 +327,15 @@ export const StudentProfile = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-neutral-700">Nombre completo</Label>
-                <p className="text-neutral-800 font-medium">{profileData.name}</p>
+                <p className="text-neutral-800 font-medium">
+                  {profileData.name}
+                </p>
               </div>
               <div>
                 <Label className="text-neutral-700">Correo electrónico</Label>
-                <p className="text-neutral-800 font-medium">{profileData.email}</p>
+                <p className="text-neutral-800 font-medium">
+                  {profileData.email}
+                </p>
               </div>
               <div>
                 <Label className="text-neutral-700">RUT</Label>
@@ -379,10 +396,11 @@ export const StudentProfile = () => {
 
       {/* Activity Stats */}
       <Card className="bg-white backdrop-blur-sm border-sage/20 shadow-lg">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-neutral-800">
             Actividad en la Plataforma
           </CardTitle>
+<<<<<<< Updated upstream
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-3 gap-4">
@@ -409,6 +427,18 @@ export const StudentProfile = () => {
             </div>
           </div>
         </CardContent>
+=======
+          <Link href="/search">
+            <Button
+              variant="outline"
+              className="border-sage/30 text-sage hover:bg-sage/10"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Buscar Propiedades
+            </Button>
+          </Link>
+        </CardHeader>
+>>>>>>> Stashed changes
       </Card>
 
       {/* Danger Zone - Delete Account */}

@@ -4,7 +4,7 @@ import { StudentProfile } from "@/components/student/StudentProfile";
 import { useAuth, isStudent } from "@/contexts/AuthContext";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Home, Search, Bell } from "lucide-react";
+import { Home, Search } from "lucide-react";
 
 export default function StudentProfilePage() {
   const { user } = useAuth();
@@ -38,9 +38,6 @@ export default function StudentProfilePage() {
                   <Search className="h-5 w-5 text-neutral-600" />
                 </Button>
               </Link>
-              <Button variant="ghost" size="sm">
-                <Bell className="h-5 w-5 text-neutral-600" />
-              </Button>
             </div>
           </div>
         </div>

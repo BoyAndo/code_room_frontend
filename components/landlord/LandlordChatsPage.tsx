@@ -6,7 +6,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 // 💡 ASUME que tienes tu componente de chat
 // El archivo real se llama ChatWindows.tsx y exporta por defecto ChatWindow
-import ChatWindow from "@/components/chat/ChatWindows";
+import ChatWindow from "@/components/chats/ChatWindows";
 import { MessageSquare, CheckCircle, XCircle } from "lucide-react";
 
 // --- Interfaces y Tipos (Para consistencia de datos) ---
@@ -216,7 +216,7 @@ const LandlordChatsPage: React.FC = () => {
               >
                 {/* ✅ AHORA USAMOS LOS NOMBRES Y DATOS REALES DE MYSQL/PRISMA */}
                 <p className="font-semibold text-neutral-800 truncate flex items-center">
-                  Con: {chat.studentName}
+                  Estudiante: {chat.studentName}
                   {/* Icono de Verificación */}
                   <span className="ml-2 text-xs font-normal">
                     {chat.isVerified ? (
