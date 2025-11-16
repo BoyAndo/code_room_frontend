@@ -1173,11 +1173,14 @@ export default function SearchPage() {
                     <MapPin className="h-4 w-4 mr-1" />
 
                     <Link
-                      href={`http://maps.google.com/maps?q=$$${property.latitude},${property.longitude}`}
-                      target="_blank"
+                      // El enlace a Google Maps sigue utilizando las coordenadas para la precisión.
+                      href={`http://maps.google.com/maps?q=${property.latitude},${property.longitude}`}
+                      target="_blank" // Abrir en una nueva pestaña
                       rel="noopener noreferrer"
+                      // Estilos para que el texto de la dirección se vea como un enlace
                       className="hover:underline hover:text-education transition duration-150"
                     >
+                      {/* 🛑 AHORA MUESTRA LA DIRECCIÓN COMPLETA REGISTRADA 🛑 */}
                       <span className="truncate max-w-[200px] sm:max-w-none block">
                         {property.address}
                       </span>

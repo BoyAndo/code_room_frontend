@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useAuth, isLandlord } from "@/contexts/AuthContext";
 import { useGoogleMaps } from "@/contexts/GoogleMapsContext";
@@ -16,6 +16,7 @@ import {
   Home,
   User,
   Bell,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,53 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
-// Interfaces (las mismas que en search/page.tsx)
+// ✅ IMPORTAR PUSHER CLIENT CORRECTAMENTE
+import { pusherClient } from "@/lib/pusher.client";
+
+// --- INTERFACES IDÉNTICAS A SEARCH/PAGE.TSX ---
+
+// 1. INTERFAZ DE AUTENTICACIÓN
+export interface StudentPayload {
+  id: number;
+  studentRut: string;
+  studentEmail: string;
+  studentName: string;
+  studentCollege: string;
+  role: "student";
+}
+
+export interface LandlordPayload {
+  id: number;
+  landlordRut: string;
+  landlordEmail: string;
+  landlordName: string;
+  role: "landlord";
+}
+
+export type LoggedInUser = StudentPayload | LandlordPayload;
+
+// 2. INTERFAZ DE MENSAJE API (Basada en tu DBMessage)
+interface APIChatMessage {
+  id: number;
+  sender_id: number;
+  recipient_id: number;
+  property_id: number;
+  content: string;
+  created_at: string;
+  sender_role: string; // ✅ CRÍTICO: "STUDENT" o "LANDLORD" (MAYÚSCULAS desde DB)
+  recipient_role: string;
+}
+
+// 3. INTERFAZ DE MENSAJE PARA EL ESTADO LOCAL
+interface ChatMessageState {
+  id: number | string;
+  text: string;
+  sender: "user" | "other";
+  timestamp: string;
+  created_at: string;
+}
+
+// 4. INTERFAZ DE PROPIEDAD
 interface Amenity {
   id: number;
   name: string;
@@ -81,20 +128,30 @@ interface Property {
 
 export default function PropertyPage() {
   const params = useParams();
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
   const { isLoaded: isMapLoaded, loadError: mapLoadError } = useGoogleMaps();
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // ✅ ESTADOS DE CHAT IDÉNTICOS A SEARCH/PAGE.TSX
   const [chatMessage, setChatMessage] = useState("");
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessageState[]>([]);
+
+  // 🛑 NUEVO ESTADO: Usuario logueado (Para Pusher y lógica de chat)
+  const [user, setUser] = useState<LoggedInUser | null>(null);
+
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({
     lat: -33.447487,
     lng: -70.673676,
-  }); // Centro por defecto: Santiago
+  });
 
   // Función para geocodificar la dirección
-  const geocodeAddress = async (address: string, comuna: string, region: string) => {
+  const geocodeAddress = async (
+    address: string,
+    comuna: string,
+    region: string
+  ) => {
     if (!isMapLoaded || !window.google) return;
 
     const geocoder = new window.google.maps.Geocoder();
@@ -117,6 +174,93 @@ export default function PropertyPage() {
     });
   };
 
+  // 🛑 INICIO: FUNCIÓN PARA CARGAR EL HISTORIAL DE CHAT (PERSISTENCIA) 🛑
+  const fetchChatHistory = useCallback(
+    async (propertyToLoad: Property) => {
+      const isCurrentUserStudent = user?.role === "student";
+      const studentId = user?.id;
+      const landlordId = propertyToLoad.landlordId;
+
+      if (!user || !propertyToLoad) {
+        setChatMessages([]);
+        return;
+      }
+
+      try {
+        const url = `/api/chat/history?propertyId=${propertyToLoad.id}&landlordId=${landlordId}&studentId=${studentId}`;
+
+        const historyResponse = await fetch(url, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json();
+          const formattedMessages: ChatMessageState[] = historyData.messages
+            .map((msg: APIChatMessage) => ({
+              id: msg.id,
+              text: msg.content,
+              sender:
+                isCurrentUserStudent && msg.sender_role === "STUDENT"
+                  ? "user"
+                  : "other",
+              timestamp: new Date(msg.created_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              created_at: msg.created_at,
+            }))
+            .sort(
+              (a: any, b: any) =>
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime()
+            );
+
+          setChatMessages(formattedMessages);
+        } else {
+          console.error(
+            `Fallo al cargar el historial (Status: ${historyResponse.status})`
+          );
+          setChatMessages([]);
+        }
+      } catch (error) {
+        console.error("Error de red al cargar el historial:", error);
+        setChatMessages([]);
+      }
+    },
+    [user]
+  );
+  // 🛑 FIN: FUNCIÓN PARA CARGAR EL HISTORIAL DE CHAT 🛑
+
+  // ✅ FUNCIÓN DE ENVÍO DE MENSAJE IDÉNTICA A SEARCH/PAGE.TSX
+  const handleSendMessage = async () => {
+    if (chatMessage.trim() && property) {
+      const messageContent = chatMessage.trim();
+      setChatMessage("");
+
+      try {
+        const response = await fetch("/api/chat/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            recipientId: property.landlordId,
+            propertyId: property.id,
+            content: messageContent,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error("Fallo al enviar el mensaje:", await response.json());
+        }
+      } catch (error) {
+        console.error("Error de red al enviar el mensaje:", error);
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchProperty = async () => {
       try {
@@ -133,46 +277,41 @@ export default function PropertyPage() {
         );
 
         console.log("Property details response status:", response.status);
-        console.log(
-          "Response headers:",
-          Object.fromEntries(response.headers.entries())
-        );
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
-        console.log("API Response:", result); // Debug log
+        console.log("API Response:", result);
 
-        // Extraer los datos de la propiedad de la respuesta
         const propertyData = result.data || result;
 
-        // Asegurarse de que los campos requeridos estén presentes
         if (!propertyData) {
           throw new Error("No se recibieron datos de la propiedad");
         }
 
         console.log("Property data before transform:", propertyData);
 
-        // Transformar los datos si es necesario
         const transformedProperty = {
           ...propertyData,
-          // Extraer nombres de comuna y región si vienen como objetos
-          comuna: propertyData.comuna?.name || propertyData.comuna || "Comuna desconocida",
-          region: propertyData.region?.name || propertyData.region || "Región desconocida",
-          // Manejar imágenes - el backend ahora devuelve 'images' directamente
-          // pero también mantener compatibilidad con propertyImages y propertyimage
+          comuna:
+            propertyData.comuna?.name ||
+            propertyData.comuna ||
+            "Comuna desconocida",
+          region:
+            propertyData.region?.name ||
+            propertyData.region ||
+            "Región desconocida",
           images:
-            propertyData.images || // Primero intentar con 'images' (lo que devuelve el backend)
-            propertyData.propertyImages?.map((img: any) => img.imageUrl) || // Fallback a propertyImages
-            propertyData.propertyimage?.map((img: any) => img.imageUrl) || // Fallback a propertyimage (lowercase)
+            propertyData.images ||
+            propertyData.propertyImages?.map((img: any) => img.imageUrl) ||
+            propertyData.propertyimage?.map((img: any) => img.imageUrl) ||
             [],
-          // Manejar amenities - similar al caso de imágenes
           amenities:
-            propertyData.amenities || // Primero intentar con 'amenities' (lo que devuelve el backend)
-            propertyData.propertyAmenities?.map((pa: any) => pa.amenity) || // Fallback a propertyAmenities
-            propertyData.propertyamenity?.map((pa: any) => pa.amenity) || // Fallback a propertyamenity (lowercase)
+            propertyData.amenities ||
+            propertyData.propertyAmenities?.map((pa: any) => pa.amenity) ||
+            propertyData.propertyamenity?.map((pa: any) => pa.amenity) ||
             [],
           landlord: propertyData.landlord || {
             id: propertyData.landlordId,
@@ -185,7 +324,7 @@ export default function PropertyPage() {
         console.log("Address for geocoding:", {
           address: transformedProperty.address,
           comuna: transformedProperty.comuna,
-          region: transformedProperty.region
+          region: transformedProperty.region,
         });
         setProperty(transformedProperty);
       } catch (error) {
@@ -201,12 +340,10 @@ export default function PropertyPage() {
   }, [params.id]);
 
   // Geocodificar la dirección cuando la propiedad se carga y el mapa está listo
-  // Solo si NO hay coordenadas guardadas
   useEffect(() => {
     if (property && isMapLoaded && !property.latitude && !property.longitude) {
       geocodeAddress(property.address, property.comuna, property.region);
     } else if (property && property.latitude && property.longitude) {
-      // Si ya tiene coordenadas, usar esas directamente
       setMapCenter({
         lat: Number(property.latitude),
         lng: Number(property.longitude),
@@ -214,29 +351,122 @@ export default function PropertyPage() {
     }
   }, [property, isMapLoaded]);
 
-  const handleSendMessage = () => {
-    if (chatMessage.trim() && property) {
-      const newMessage = {
-        id: Date.now(),
-        text: chatMessage,
-        sender: "user",
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setChatMessages([...chatMessages, newMessage]);
-      setChatMessage("");
+  // 🛑 EFECTO PARA CARGAR DATOS DEL USUARIO LOGUEADO 🛑
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const response = await apiFetch("http://localhost:3001/auth/me", {
+          method: "GET",
+        });
 
-      // Simular respuesta automática del propietario
-      setTimeout(() => {
-        const autoReply = {
-          id: Date.now() + 1,
-          text: "¡Hola! Gracias por tu interés en la propiedad. ¿Te gustaría agendar una visita?",
-          sender: "owner",
-          timestamp: new Date().toLocaleTimeString(),
-        };
-        setChatMessages((prev) => [...prev, autoReply]);
-      }, 2000);
+        if (response.ok) {
+          const responseData = await response.json();
+          const userData = responseData.user || responseData;
+
+          if (userData && userData.id) {
+            console.log("DEBUG AUTH: ✅ Usuario cargado con ID:", userData.id);
+            setUser(userData as LoggedInUser);
+          } else {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error(
+          "DEBUG AUTH: 🛑 Error de red al cargar el usuario:",
+          error
+        );
+        setUser(null);
+      }
+    };
+
+    loadUser();
+  }, []);
+
+  // 🛑 EFECTO PARA LA SUSCRIPCIÓN EN TIEMPO REAL CON PUSHER 🛑
+  useEffect(() => {
+    if (!property || !user || !pusherClient) {
+      console.log("⚠️ Pusher - Condiciones no cumplidas:", {
+        property: !!property,
+        user: !!user,
+        pusherClient: !!pusherClient,
+      });
+      return;
     }
-  };
+
+    const isCurrentUserStudent = user.role === "student";
+    const senderId = user.id;
+    const recipientId = property.landlordId;
+    const propertyId = property.id;
+
+    const sortedIds = [Number(senderId), Number(recipientId)]
+      .sort((a, b) => a - b)
+      .join("-");
+    const chatRoomId = `private-chat-prop-${propertyId}-${sortedIds}`;
+
+    console.log("🔔 Pusher - Suscribiéndose al canal:", chatRoomId);
+    console.log("🔔 Pusher - Usuario actual:", {
+      id: senderId,
+      role: user.role,
+      isStudent: isCurrentUserStudent,
+    });
+
+    const channel = pusherClient.subscribe(chatRoomId);
+
+    const handleNewMessage = (data: APIChatMessage) => {
+      console.log("📨 Pusher - Nuevo mensaje recibido:", data);
+      console.log("📨 Pusher - Rol del remitente:", data.sender_role);
+      console.log(
+        "📨 Pusher - Usuario actual es estudiante:",
+        isCurrentUserStudent
+      );
+
+      const newMessage: ChatMessageState = {
+        id: data.id,
+        text: data.content,
+        sender:
+          isCurrentUserStudent && data.sender_role === "STUDENT"
+            ? "user"
+            : !isCurrentUserStudent && data.sender_role === "LANDLORD"
+            ? "user"
+            : "other",
+        timestamp: new Date(data.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        created_at: data.created_at,
+      };
+
+      console.log("📨 Pusher - Mensaje procesado:", newMessage);
+      setChatMessages((prev) => {
+        if (prev.some((msg) => msg.id === newMessage.id)) {
+          console.log("⚠️ Pusher - Mensaje duplicado, ignorando");
+          return prev;
+        }
+        console.log("✅ Pusher - Agregando mensaje al estado");
+        return [...prev, newMessage];
+      });
+    };
+
+    channel.bind("message-sent", handleNewMessage);
+
+    console.log("✅ Pusher - Suscripción completada al canal:", chatRoomId);
+
+    return () => {
+      console.log("🔌 Pusher - Desuscribiéndose del canal:", chatRoomId);
+      channel.unbind("message-sent", handleNewMessage);
+      pusherClient.unsubscribe(chatRoomId);
+    };
+  }, [property, user]);
+
+  // 🛑 EFECTO PARA CARGAR EL HISTORIAL DE CHAT CUANDO HAY PROPIEDAD Y USUARIO 🛑
+  useEffect(() => {
+    if (!property || !user) {
+      return;
+    }
+    fetchChatHistory(property);
+  }, [property, user, fetchChatHistory]);
 
   if (loading) {
     return (
@@ -433,9 +663,17 @@ export default function PropertyPage() {
                     zoom={15}
                     options={{
                       zoomControl: true,
-                      streetViewControl: false,
+                      streetViewControl: true, // ✅ STREET VIEW ACTIVADO
+                      streetViewControlOptions: {
+                        position:
+                          window.google.maps.ControlPosition.RIGHT_BOTTOM,
+                      },
                       mapTypeControl: false,
                       fullscreenControl: true,
+                      fullscreenControlOptions: {
+                        position: window.google.maps.ControlPosition.RIGHT_TOP,
+                      },
+                      gestureHandling: "greedy",
                     }}
                   >
                     <Marker
@@ -455,7 +693,12 @@ export default function PropertyPage() {
                       property.latitude && property.longitude
                         ? `https://www.google.com/maps/search/?api=1&query=${property.latitude},${property.longitude}`
                         : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                            property.address + ", " + property.comuna + ", " + property.region + ", Chile"
+                            property.address +
+                              ", " +
+                              property.comuna +
+                              ", " +
+                              property.region +
+                              ", Chile"
                           )}`
                     }
                     target="_blank"
@@ -497,10 +740,18 @@ export default function PropertyPage() {
 
               {/* Contact Buttons */}
               <div className="space-y-3">
-                {(!user || !isLandlord(user)) && (
+                {(!authUser || !isLandlord(authUser)) && (
                   <Dialog>
-                    <DialogTrigger asChild>
-                      <Button className="w-full bg-golden hover:bg-education text-white font-semibold">
+                    <DialogTrigger asChild disabled={!user}>
+                      <Button
+                        className="w-full bg-golden hover:bg-education text-white font-semibold"
+                        onClick={() => {
+                          // Cargar el historial de chat cuando se abre el diálogo
+                          if (user && property) {
+                            fetchChatHistory(property);
+                          }
+                        }}
+                      >
                         <MessageCircle className="h-5 w-5 mr-2" />
                         Contactar propietario
                       </Button>
@@ -601,7 +852,7 @@ export default function PropertyPage() {
                             disabled={!chatMessage.trim()}
                             className="bg-golden hover:bg-education text-white"
                           >
-                            Enviar
+                            <Send className="h-4 w-4" />
                           </Button>
                         </div>
 
