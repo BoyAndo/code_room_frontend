@@ -454,7 +454,6 @@ export const StudentProfile = () => {
           <CardTitle className="text-neutral-800">
             Acciones Recomendadas
           </CardTitle>
-<<<<<<< HEAD
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-1 gap-4">
@@ -468,22 +467,6 @@ export const StudentProfile = () => {
               </Button>
             </Link>
           </div>
-=======
-          <Link href="/search">
-            <Button
-              variant="outline"
-              className="border-sage/30 text-sage hover:bg-sage/10"
-            >
-              <Search className="h-4 w-4 mr-2" />
-              Buscar Propiedades
-            </Button>
-          </Link>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-neutral-600">
-            Explora las propiedades disponibles y encuentra tu próximo hogar.
-          </p>
->>>>>>> 44fd861c29a44f8f9af2eafe3fdcf778c7bb3db1
         </CardContent>
       </Card>
 
