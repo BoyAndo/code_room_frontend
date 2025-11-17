@@ -1,15 +1,12 @@
-// components/landlord/LandlordChatsPage.tsx
+// components/student/StudentChatsPage.tsx
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-// 💡 ASUME que tienes tu hook de autenticación
 import { useAuth } from "@/contexts/AuthContext";
-// 💡 ASUME que tienes tu componente de chat
-// El archivo real se llama ChatWindows.tsx y exporta por defecto ChatWindow
 import ChatWindow from "@/components/chat/ChatWindows";
 import { MessageSquare } from "lucide-react";
 
-// --- Interfaces y Tipos (Para consistencia de datos) ---
+// --- Interfaces y Tipos ---
 
 interface RawConversation {
   studentId: string;
@@ -19,41 +16,38 @@ interface RawConversation {
   lastMessageTime: string;
 }
 
-interface ResolvedUser {
+interface ResolvedLandlord {
   id: string;
   name: string;
-  college?: string; // Nuevo: Nombre de la universidad
-  isVerified?: boolean; // Nuevo: Estado de verificación
+  isVerified?: boolean;
 }
 
 interface ResolvedProperty {
   id: string;
-  name: string; // Título de la propiedad
+  name: string;
 }
 
 interface ResolvedData {
   properties: ResolvedProperty[];
-  users: ResolvedUser[];
+  users: ResolvedLandlord[]; // El API devuelve 'users' que contiene los landlords
 }
 
 interface ChatListItem extends RawConversation {
-  studentName: string;
+  landlordName: string;
   propertyName: string;
-  college?: string;
   isVerified?: boolean;
 }
 
-// 💡 Función de utilidad para resolver nombres a través del proxy de Next.js
+// Función para resolver nombres de propiedades y arrendadores
 const resolveNames = async (
   propertyIds: string[],
-  studentIds: string[]
+  landlordIds: string[]
 ): Promise<ResolvedData> => {
   try {
-    // Llama al endpoint POST corregido
-    const response = await fetch("/api/data/resolve-names", {
+    const response = await fetch("/api/data/resolve-names-student", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ propertyIds, studentIds }),
+      body: JSON.stringify({ propertyIds, landlordIds }),
     });
 
     if (!response.ok) {
@@ -69,9 +63,9 @@ const resolveNames = async (
 
 // --- Componente Principal ---
 
-const LandlordChatsPage: React.FC = () => {
+const StudentChatsPage: React.FC = () => {
   const { user } = useAuth();
-  const currentUserId = user?.id; // ID del Arrendador loggeado (de Supabase)
+  const currentUserId = user?.id;
 
   const [conversations, setConversations] = useState<ChatListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,9 +75,8 @@ const LandlordChatsPage: React.FC = () => {
     if (!currentUserId) return;
 
     try {
-      // 1. Fetch de IDs de conversaciones (Llama al endpoint GET corregido)
       const response = await fetch(
-        `/api/chat/landlord-chats?landlordId=${encodeURIComponent(
+        `/api/chat/student-chats?studentId=${encodeURIComponent(
           String(currentUserId)
         )}`
       );
@@ -93,22 +86,18 @@ const LandlordChatsPage: React.FC = () => {
         const initialConversations: RawConversation[] = data.conversations;
 
         if (initialConversations.length > 0) {
-          // 2. Extraer IDs únicos
           const propertyIds = Array.from(
             new Set(initialConversations.map((c) => c.propertyId))
           );
-          const studentIds = Array.from(
-            new Set(initialConversations.map((c) => c.studentId))
+          const landlordIds = Array.from(
+            new Set(initialConversations.map((c) => c.landlordId))
           );
 
-          // 3. Resolver Nombres, Universidad y Verificación (Llama al backend 3001 vía proxy)
-          const resolvedData = await resolveNames(propertyIds, studentIds);
+          const resolvedData = await resolveNames(propertyIds, landlordIds);
 
-          // 4. Mapear y combinar los datos
           const finalChats = initialConversations.map((chat) => {
-            // Buscar la información resuelta del estudiante y propiedad
-            const student = resolvedData.users.find(
-              (u) => String(u.id) === chat.studentId
+            const landlord = resolvedData.users.find(
+              (l) => String(l.id) === chat.landlordId
             );
             const property = resolvedData.properties.find(
               (p) => String(p.id) === chat.propertyId
@@ -116,23 +105,20 @@ const LandlordChatsPage: React.FC = () => {
 
             return {
               ...chat,
-              studentName: student?.name || `Estudiante ID ${chat.studentId}`,
+              landlordName: landlord?.name || `Arrendador ID ${chat.landlordId}`,
               propertyName: property?.name || `Propiedad ID ${chat.propertyId}`,
-              college: student?.college, // Incluimos la universidad
-              isVerified: student?.isVerified ?? false, // Incluimos el estado de verificación
+              isVerified: landlord?.isVerified ?? false,
             } as ChatListItem;
           });
 
           setConversations(finalChats);
 
-          // Si había un chat seleccionado, actualizar sus datos con los resueltos
-          // Usamos la forma funcional para evitar depender de selectedChat en el useCallback
           setSelectedChat((prevSelectedChat) => {
             if (!prevSelectedChat) return null;
             const updatedChat = finalChats.find(
               (c) =>
                 c.propertyId === prevSelectedChat.propertyId &&
-                c.studentId === prevSelectedChat.studentId
+                c.landlordId === prevSelectedChat.landlordId
             );
             return updatedChat || null;
           });
@@ -158,14 +144,12 @@ const LandlordChatsPage: React.FC = () => {
     }
   }, [currentUserId, fetchConversations]);
 
-  // Limpiar el chat seleccionado si el usuario se desloggea
   useEffect(() => {
     if (!currentUserId) {
       setSelectedChat(null);
     }
   }, [currentUserId]);
 
-  // Estilos de carga y no autenticado
   if (!currentUserId) {
     return (
       <div className="p-8 text-center text-red-500">
@@ -188,7 +172,7 @@ const LandlordChatsPage: React.FC = () => {
       <div className="w-1/3 border-r bg-white flex flex-col">
         <div className="p-4 border-b">
           <h2 className="text-xl font-bold text-neutral-800">
-            Chats de Propiedades
+            Mis Conversaciones
           </h2>
           <p className="text-sm text-neutral-500">
             Total de {totalConversations}{" "}
@@ -205,28 +189,21 @@ const LandlordChatsPage: React.FC = () => {
           ) : (
             conversations.map((chat) => (
               <div
-                key={`${chat.propertyId}-${chat.studentId}`}
+                key={`${chat.propertyId}-${chat.landlordId}`}
                 onClick={() => setSelectedChat(chat)}
                 className={`p-4 border-b cursor-pointer transition duration-150 ${
                   selectedChat?.propertyId === chat.propertyId &&
-                  selectedChat?.studentId === chat.studentId
-                    ? "bg-sage/10 border-l-4 border-sage" // Chat seleccionado
-                    : "hover:bg-neutral-50" // Chat no seleccionado
+                  selectedChat?.landlordId === chat.landlordId
+                    ? "bg-golden/10 border-l-4 border-golden"
+                    : "hover:bg-neutral-50"
                 }`}
               >
-                {/* ✅ AHORA USAMOS LOS NOMBRES Y DATOS REALES DE MYSQL/PRISMA */}
                 <p className="font-semibold text-neutral-800 truncate">
-                  Con: {chat.studentName}
+                  {chat.landlordName}
                 </p>
                 <p className="text-sm text-neutral-600 truncate mt-0.5">
                   Propiedad: {chat.propertyName}
                 </p>
-                {/* Mostramos la universidad */}
-                {chat.college && (
-                  <p className="text-xs text-blue-600/80 truncate mt-0.5">
-                    Estudia en: {chat.college}
-                  </p>
-                )}
                 <p className="text-xs text-neutral-500 truncate mt-1">
                   Último mensaje: {chat.lastMessageContent}
                 </p>
@@ -243,7 +220,7 @@ const LandlordChatsPage: React.FC = () => {
             currentUserId={currentUserId}
             landlordId={selectedChat.landlordId}
             propertyId={selectedChat.propertyId}
-            studentId={selectedChat.studentId} // 💡 CRÍTICO: Pasamos el studentId
+            studentId={selectedChat.studentId}
           />
         ) : (
           <div className="flex flex-col justify-center items-center h-full text-neutral-500">
@@ -257,4 +234,4 @@ const LandlordChatsPage: React.FC = () => {
   );
 };
 
-export default LandlordChatsPage;
+export default StudentChatsPage;

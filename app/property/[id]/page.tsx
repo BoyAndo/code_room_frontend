@@ -159,8 +159,8 @@ export default function PropertyPage() {
         const transformedProperty = {
           ...propertyData,
           // Extraer nombres de comuna y región si vienen como objetos
-          comuna: propertyData.comuna?.name || propertyData.comuna || "Comuna desconocida",
-          region: propertyData.region?.name || propertyData.region || "Región desconocida",
+          comuna: propertyData.comuna?.name || propertyData.comuna || "",
+          region: propertyData.region?.name || propertyData.region || "",
           // Manejar imágenes - el backend ahora devuelve 'images' directamente
           // pero también mantener compatibilidad con propertyImages y propertyimage
           images:
@@ -356,7 +356,11 @@ export default function PropertyPage() {
 
               <div className="flex items-center text-neutral-600 mb-4">
                 <MapPin className="h-5 w-5 mr-2" />
-                {property.address}, {property.comuna}, {property.region}
+                {[
+                  property.address,
+                  property.comuna,
+                  property.region
+                ].filter(Boolean).join(", ")}
               </div>
 
               <div className="grid grid-cols-3 gap-4 mb-6">

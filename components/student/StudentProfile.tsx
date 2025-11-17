@@ -22,11 +22,13 @@ import {
   Trash2,
   LogOut,
   Search,
+  UserCircle,
 } from "lucide-react";
 import { useAuth, isStudent } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteAccountDialog } from "@/components/DeleteAccountDialog";
 import { useRouter } from "next/navigation";
+import StudentChatsPage from "@/components/student/StudentChatsPage";
 
 interface ProfileData {
   name: string;
@@ -35,11 +37,14 @@ interface ProfileData {
   documentStatus: "pending" | "validated" | "rejected";
 }
 
+type ViewMode = "profile" | "messages";
+
 export const StudentProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("profile");
   const { user, updateUser, logout } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -202,8 +207,49 @@ export const StudentProfile = () => {
 
   return (
     <div className="space-y-6">
-      {/* Profile Information */}
+      {/* Navigation Tabs */}
       <Card className="bg-white backdrop-blur-sm border-sage/20 shadow-lg">
+        <CardContent className="p-4">
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === "profile" ? "default" : "outline"}
+              className={
+                viewMode === "profile"
+                  ? "bg-golden hover:bg-education text-white"
+                  : "border-sage/30 text-sage hover:bg-sage/10"
+              }
+              onClick={() => setViewMode("profile")}
+            >
+              <UserCircle className="h-4 w-4 mr-2" />
+              Mi Perfil
+            </Button>
+            <Button
+              variant={viewMode === "messages" ? "default" : "outline"}
+              className={
+                viewMode === "messages"
+                  ? "bg-golden hover:bg-education text-white"
+                  : "border-sage/30 text-sage hover:bg-sage/10"
+              }
+              onClick={() => setViewMode("messages")}
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Mensajes
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Render Content Based on View Mode */}
+      {viewMode === "messages" ? (
+        <Card className="bg-white backdrop-blur-sm border-sage/20 shadow-lg">
+          <CardContent className="p-0">
+            <StudentChatsPage />
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Profile Information */}
+          <Card className="bg-white backdrop-blur-sm border-sage/20 shadow-lg">
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             <div className="flex flex-col items-center">
@@ -404,7 +450,7 @@ export const StudentProfile = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-1 gap-4">
             <Link href="/search" className="w-full">
               <Button
                 variant="outline"
@@ -414,13 +460,6 @@ export const StudentProfile = () => {
                 Buscar Propiedades
               </Button>
             </Link>
-            <Button
-              variant="outline"
-              className="w-full border-sage/30 text-sage hover:bg-sage/10"
-            >
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Mensajes
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -459,6 +498,8 @@ export const StudentProfile = () => {
         userType="student"
         isDeleting={isDeleting}
       />
+        </>
+      )}
     </div>
   );
 };

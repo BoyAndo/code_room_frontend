@@ -20,6 +20,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext"; // Importa el hook
 import { RegionCommuneSelect } from "@/components/RegionCommuneSelect";
+import { StudentRegistrationLoader } from "@/components/student/StudentRegistrationLoader";
+import { PrivacyDisclaimerModal } from "@/components/PrivacyDisclaimerModal";
+
+type LoaderStatus = "loading" | "success" | "error";
 
 export default function StudentRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -31,6 +35,14 @@ export default function StudentRegisterPage() {
   const router = useRouter();
   const { login, user } = useAuth();
   const [redirectAfterLogin, setRedirectAfterLogin] = useState(false);
+  
+  // Estados para el loader
+  const [loaderStatus, setLoaderStatus] = useState<LoaderStatus | null>(null);
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
+  
+  // Estado para el disclaimer modal
+  const [showDisclaimer, setShowDisclaimer] = useState(true);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   // Redirige automáticamente cuando el usuario se actualiza tras login
   useEffect(() => {
@@ -118,19 +130,23 @@ export default function StudentRegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setLoaderStatus("loading"); // Mostrar loader
     setError("");
+    setErrorMessages([]);
 
     try {
       // ✅ Validar que las contraseñas coincidan
       if (formData.password !== formData.confirmPassword) {
         setError("Las contraseñas no coinciden");
         setLoading(false);
+        setLoaderStatus(null);
         return;
       }
 
       if (!certificateFile) {
         setError("Por favor, sube tu certificado de alumno regular");
         setLoading(false);
+        setLoaderStatus(null);
         return;
       }
 
@@ -171,20 +187,60 @@ export default function StudentRegisterPage() {
 
       if (response.ok) {
         const data = await response.json();
+        setLoaderStatus("success"); // Mostrar éxito
         await login();
-        // Redirige según el usuario actualizado en el contexto
+        
+        // Esperar un momento antes de redirigir
         setTimeout(() => {
           if (typeof window !== "undefined") {
-            // Forzar actualización del contexto
             window.location.href = "/profile";
           }
-        }, 300);
+        }, 2000);
       } else {
         const errorData = await response.json();
-        setError(errorData.message || "Error en el registro");
+        setLoaderStatus("error");
+        
+        // Filtrar y procesar mensajes de error
+        let messages: string[] = [];
+        
+        if (Array.isArray(errorData.message)) {
+          messages = errorData.message.filter((msg: string) => 
+            !msg.toLowerCase().includes('error interno') && 
+            !msg.toLowerCase().includes('internal server')
+          );
+        } else if (typeof errorData.message === 'string') {
+          const msg = errorData.message;
+          // Si es un error de servidor genérico, mostrar mensaje amigable
+          if (msg.toLowerCase().includes('error interno') || 
+              msg.toLowerCase().includes('internal server') ||
+              msg.toLowerCase().includes('500')) {
+            messages = [
+              "Algo salió mal durante el registro. Por favor, intenta nuevamente.",
+              "Verifica que tu certificado de alumno regular sea válido y esté en formato PDF."
+            ];
+          } else {
+            messages = [msg];
+          }
+        }
+        
+        // Si no hay mensajes específicos, mostrar mensaje genérico
+        if (messages.length === 0) {
+          messages = [
+            "Algo salió mal durante el registro. Por favor, intenta nuevamente.",
+            "Si el problema persiste, contacta a soporte."
+          ];
+        }
+        
+        setErrorMessages(messages);
+        setError(messages[0]);
       }
     } catch (error) {
       console.error("Error:", error);
+      setLoaderStatus("error");
+      setErrorMessages([
+        "Algo salió mal durante el registro. Por favor, intenta nuevamente.",
+        "Verifica tu conexión a internet y que todos los datos sean correctos."
+      ]);
       setError("Error de conexión. Intenta nuevamente.");
     } finally {
       setLoading(false);
@@ -198,6 +254,33 @@ export default function StudentRegisterPage() {
 
   return (
     <div className="min-h-screen code-room-subtle-pattern flex items-center justify-center p-4">
+      {/* Privacy Disclaimer Modal */}
+      <PrivacyDisclaimerModal
+        isOpen={showDisclaimer && !disclaimerAccepted}
+        onAccept={() => {
+          setDisclaimerAccepted(true);
+          setShowDisclaimer(false);
+        }}
+        onDecline={() => {
+          router.push("/register");
+        }}
+        userType="student"
+      />
+      
+      {/* Loader Modal */}
+      {loaderStatus && (
+        <StudentRegistrationLoader
+          status={loaderStatus}
+          errorMessages={errorMessages}
+          onClose={() => {
+            setLoaderStatus(null);
+            if (loaderStatus === "success") {
+              window.location.href = "/profile";
+            }
+          }}
+        />
+      )}
+      
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">

@@ -214,7 +214,7 @@ export const LocationForm = memo(function LocationForm({
                 </GoogleMap>
                 {pinPosition && (
                     <p className="text-xs text-neutral-500 mt-2">
-                        Coordenadas actuales: {latitude?.toFixed(6)}, {longitude?.toFixed(6)}
+                        Coordenadas actuales: {Number(latitude)?.toFixed(6)}, {Number(longitude)?.toFixed(6)}
                     </p>
                 )}
             </div>

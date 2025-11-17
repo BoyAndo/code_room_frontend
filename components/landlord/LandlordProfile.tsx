@@ -92,7 +92,8 @@ export const LandlordProfile = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Error al subir la foto");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al subir la foto");
       }
 
       const data = await response.json();
@@ -110,9 +111,21 @@ export const LandlordProfile = () => {
       });
     } catch (error) {
       console.error("Error al actualizar foto:", error);
+      
+      let errorMessage = "No se pudo actualizar la foto de perfil. Por favor, intenta nuevamente.";
+      
+      if (error instanceof Error) {
+        // Si el mensaje viene del servidor, usarlo
+        if (error.message.includes("almacenamiento") || 
+            error.message.includes("servidor") ||
+            error.message.includes("configuración")) {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "No se pudo actualizar la foto de perfil.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -126,7 +139,7 @@ export const LandlordProfile = () => {
       const API_URL =
         process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
 
-      const response = await apiFetch(`${API_URL}/user/landlord`, {
+      const response = await apiFetch(`${API_URL}/auth/landlords`, {
         method: "DELETE",
       });
 
