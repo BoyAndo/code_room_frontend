@@ -96,9 +96,10 @@ export const StudentProfile = () => {
       const formData = new FormData();
       formData.append("photo", file);
 
-      const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
+      const API_URL =
+        process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
       console.log("Uploading to:", `${API_URL}/profile/student/photo`);
-      
+
       const response = await apiFetch(`${API_URL}/profile/student/photo`, {
         method: "POST",
         body: formData,
@@ -109,7 +110,7 @@ export const StudentProfile = () => {
 
       console.log("Response status:", response.status);
       console.log("Response URL:", response.url);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error response:", errorText);
@@ -144,8 +145,9 @@ export const StudentProfile = () => {
   const handleDeleteAccount = async () => {
     try {
       setIsDeleting(true);
-      
-      const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
+
+      const API_URL =
+        process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001";
       const response = await apiFetch(`${API_URL}/user/student`, {
         method: "DELETE",
       });
@@ -379,11 +381,15 @@ export const StudentProfile = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-neutral-700">Nombre completo</Label>
-                <p className="text-neutral-800 font-medium">{profileData.name}</p>
+                <p className="text-neutral-800 font-medium">
+                  {profileData.name}
+                </p>
               </div>
               <div>
                 <Label className="text-neutral-700">Correo electrónico</Label>
-                <p className="text-neutral-800 font-medium">{profileData.email}</p>
+                <p className="text-neutral-800 font-medium">
+                  {profileData.email}
+                </p>
               </div>
               <div>
                 <Label className="text-neutral-700">RUT</Label>
@@ -444,10 +450,11 @@ export const StudentProfile = () => {
 
       {/* Recommended Actions */}
       <Card className="bg-white backdrop-blur-sm border-sage/20 shadow-lg">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-neutral-800">
             Acciones Recomendadas
           </CardTitle>
+<<<<<<< HEAD
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-1 gap-4">
@@ -461,6 +468,22 @@ export const StudentProfile = () => {
               </Button>
             </Link>
           </div>
+=======
+          <Link href="/search">
+            <Button
+              variant="outline"
+              className="border-sage/30 text-sage hover:bg-sage/10"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Buscar Propiedades
+            </Button>
+          </Link>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-neutral-600">
+            Explora las propiedades disponibles y encuentra tu próximo hogar.
+          </p>
+>>>>>>> 44fd861c29a44f8f9af2eafe3fdcf778c7bb3db1
         </CardContent>
       </Card>
 
