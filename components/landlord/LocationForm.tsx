@@ -172,7 +172,6 @@ export const LocationForm = memo(function LocationForm({
   if (loadError) {
     console.error("Error al cargar Google Maps:", loadError);
     return (
-<<<<<<< HEAD
         <div className="space-y-4">
             {!readOnlyAddress && (
                 <>
@@ -256,12 +255,6 @@ export const LocationForm = memo(function LocationForm({
                 )}
             </div>
         </div>
-=======
-      <div className="text-red-600 p-4 border border-red-300 bg-red-50 rounded-lg">
-        ⚠️ Error de API: Revisa si tu clave de Google Maps es válida y si las
-        APIs "Maps JavaScript API" y "Places API" están habilitadas.
-      </div>
->>>>>>> 44fd861c29a44f8f9af2eafe3fdcf778c7bb3db1
     );
   }
 

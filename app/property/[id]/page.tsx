@@ -295,22 +295,11 @@ export default function PropertyPage() {
 
         const transformedProperty = {
           ...propertyData,
-<<<<<<< HEAD
           // Extraer nombres de comuna y región si vienen como objetos
           comuna: propertyData.comuna?.name || propertyData.comuna || "",
           region: propertyData.region?.name || propertyData.region || "",
           // Manejar imágenes - el backend ahora devuelve 'images' directamente
           // pero también mantener compatibilidad con propertyImages y propertyimage
-=======
-          comuna:
-            propertyData.comuna?.name ||
-            propertyData.comuna ||
-            "Comuna desconocida",
-          region:
-            propertyData.region?.name ||
-            propertyData.region ||
-            "Región desconocida",
->>>>>>> 44fd861c29a44f8f9af2eafe3fdcf778c7bb3db1
           images:
             propertyData.images ||
             propertyData.propertyImages?.map((img: any) => img.imageUrl) ||
