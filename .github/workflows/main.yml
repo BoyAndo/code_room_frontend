@@ -57,6 +57,44 @@ jobs:
                     docker --version
                     docker compose version
 
+            - name: Configurar variables de entorno del sistema
+              uses: appleboy/ssh-action@v1
+              with:
+                host: ${{secrets.IP_SERVER}}
+                username: ${{secrets.USERNAME}}
+                key: ${{secrets.KEY}}
+                port: ${{secrets.PORT}}
+                script: |
+                    # Configurar variables de entorno del sistema
+                    echo "Configurando variables de entorno..."
+                    
+                    # Crear archivo de variables de entorno si no existe
+                    sudo tee /etc/environment.d/code_room_frontend.conf > /dev/null <<EOF
+                    # Code Room Frontend Environment Variables
+                    export JWT_SECRET="${{secrets.JWT_SECRET}}"
+                    export JWT_EXPIRES_IN="120h"
+                    export NEXT_PUBLIC_API_URL="${{secrets.NEXT_PUBLIC_API_URL}}"
+                    export NEXT_PUBLIC_AUTH_API_URL="${{secrets.NEXT_PUBLIC_AUTH_API_URL}}"
+                    export NEXT_PUBLIC_API_PROPERTIES_URL="${{secrets.NEXT_PUBLIC_API_PROPERTIES_URL}}"
+                    export NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="${{secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}}"
+                    export SUPABASE_URL="${{secrets.SUPABASE_URL}}"
+                    export SUPABASE_SERVICE_ROLE_KEY="${{secrets.SUPABASE_SERVICE_ROLE_KEY}}"
+                    export NEXT_PUBLIC_SUPABASE_URL="${{secrets.NEXT_PUBLIC_SUPABASE_URL}}"
+                    export NEXT_PUBLIC_SUPABASE_ANON_KEY="${{secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY}}"
+                    export PUSHER_APP_ID="${{secrets.PUSHER_APP_ID}}"
+                    export PUSHER_SECRET="${{secrets.PUSHER_SECRET}}"
+                    export PUSHER_KEY="${{secrets.PUSHER_KEY}}"
+                    export PUSHER_CLUSTER="${{secrets.PUSHER_CLUSTER}}"
+                    export NEXT_PUBLIC_PUSHER_KEY="${{secrets.NEXT_PUBLIC_PUSHER_KEY}}"
+                    export NEXT_PUBLIC_PUSHER_CLUSTER="${{secrets.NEXT_PUBLIC_PUSHER_CLUSTER}}"
+                    export DATABASE_URL="${{secrets.DATABASE_URL}}"
+                    EOF
+                    
+                    # Cargar variables en la sesión actual
+                    source /etc/environment.d/code_room_frontend.conf 2>/dev/null || true
+                    
+                    echo "✅ Variables de entorno configuradas"
+
             - name: Limpiar contenedores y construir imagen
               uses: appleboy/ssh-action@v1
               with:
@@ -67,6 +105,9 @@ jobs:
                 command_timeout: 30m
                 script: |
                     cd /home/ubuntu/code_room_frontend
+                    
+                    # Cargar variables de entorno del sistema
+                    source /etc/environment.d/code_room_frontend.conf 2>/dev/null || true
                     
                     # Detener contenedores antiguos
                     docker compose down || true

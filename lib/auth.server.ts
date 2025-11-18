@@ -28,10 +28,14 @@ export type UserPayload = LandlordPayload | StudentPayload;
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-if (!JWT_SECRET) {
-  throw new Error(
-    "JWT_SECRET no está definido en las variables de entorno de Next.js."
-  );
+// Validación solo en runtime (no en build time)
+function getJwtSecret(): string {
+  if (!JWT_SECRET) {
+    throw new Error(
+      "JWT_SECRET no está definido en las variables de entorno de Next.js."
+    );
+  }
+  return JWT_SECRET;
 }
 
 // // 💡 CÓDIGO DE DEPURACIÓN TEMPORAL (¡ELIMINAR AL FINALIZAR!)
@@ -56,7 +60,7 @@ export async function authCheck(): Promise<{ user: UserPayload | null }> {
   const token = tokenRaw.trim();
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET!, {
+    const decoded = jwt.verify(token, getJwtSecret(), {
       algorithms: ["HS256"],
     }) as UserPayload;
 

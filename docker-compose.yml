@@ -9,38 +9,38 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # JWT
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      # JWT - Toma del sistema
+      - JWT_SECRET
+      - JWT_EXPIRES_IN
       
-      # APIs
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - NEXT_PUBLIC_AUTH_API_URL=${NEXT_PUBLIC_AUTH_API_URL}
-      - NEXT_PUBLIC_API_PROPERTIES_URL=${NEXT_PUBLIC_API_PROPERTIES_URL}
+      # APIs - Toma del sistema
+      - NEXT_PUBLIC_API_URL
+      - NEXT_PUBLIC_AUTH_API_URL
+      - NEXT_PUBLIC_API_PROPERTIES_URL
       
-      # Google Maps
-      - NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+      # Google Maps - Toma del sistema
+      - NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
       
-      # Supabase Server
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      # Supabase Server - Toma del sistema
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_ROLE_KEY
       
-      # Supabase Client
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      # Supabase Client - Toma del sistema
+      - NEXT_PUBLIC_SUPABASE_URL
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY
       
-      # Pusher Server
-      - PUSHER_APP_ID=${PUSHER_APP_ID}
-      - PUSHER_SECRET=${PUSHER_SECRET}
-      - PUSHER_KEY=${PUSHER_KEY}
-      - PUSHER_CLUSTER=${PUSHER_CLUSTER}
+      # Pusher Server - Toma del sistema
+      - PUSHER_APP_ID
+      - PUSHER_SECRET
+      - PUSHER_KEY
+      - PUSHER_CLUSTER
       
-      # Pusher Client
-      - NEXT_PUBLIC_PUSHER_KEY=${NEXT_PUBLIC_PUSHER_KEY}
-      - NEXT_PUBLIC_PUSHER_CLUSTER=${NEXT_PUBLIC_PUSHER_CLUSTER}
+      # Pusher Client - Toma del sistema
+      - NEXT_PUBLIC_PUSHER_KEY
+      - NEXT_PUBLIC_PUSHER_CLUSTER
       
-      # Database (si se necesita conexión directa)
-      - DATABASE_URL=${DATABASE_URL}
+      # Database - Toma del sistema
+      - DATABASE_URL
       
       # Next.js
       - NODE_ENV=production

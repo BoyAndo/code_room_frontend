@@ -8,11 +8,14 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package.json package-lock.json* pnpm-lock.yaml* ./
+# Instalar pnpm globalmente
+RUN npm install -g pnpm
 
-# Instalar dependencias con npm (o pnpm si prefieres)
-RUN npm ci --legacy-peer-deps
+# Copiar archivos de dependencias
+COPY package.json pnpm-lock.yaml* ./
+
+# Instalar dependencias con pnpm
+RUN pnpm install --frozen-lockfile
 
 # ========================================
 # STAGE 2: Builder
@@ -20,6 +23,9 @@ RUN npm ci --legacy-peer-deps
 FROM node:20-alpine AS builder
 
 WORKDIR /app
+
+# Instalar pnpm
+RUN npm install -g pnpm
 
 # Copiar dependencias instaladas
 COPY --from=deps /app/node_modules ./node_modules
@@ -30,9 +36,11 @@ COPY . .
 # Configurar variables de entorno de build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Placeholder para JWT_SECRET (solo para build, no se usa)
+ENV JWT_SECRET=build-time-placeholder
 
-# Build de Next.js
-RUN npm run build
+# Build de Next.js con pnpm
+RUN pnpm run build
 
 # ========================================
 # STAGE 3: Runner (Producción)
