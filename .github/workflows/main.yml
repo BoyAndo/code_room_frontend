@@ -93,7 +93,7 @@ jobs:
                     # Cargar variables en la sesión actual
                     source /etc/environment.d/code_room_frontend.conf 2>/dev/null || true
                     
-                    echo "✅ Variables de entorno configuradas"
+                    echo "✅ Variables de entorno configuradas cambio"
 
             - name: Limpiar contenedores y construir imagen
               uses: appleboy/ssh-action@v1
