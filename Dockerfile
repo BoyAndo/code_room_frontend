@@ -1,21 +1,21 @@
 # ========================================
-# STAGE 1: Dependencies
+# STAGE 1: Dependencies (Usando npm)
 # ========================================
+# Usamos node:20-alpine (ya incluye npm)
 FROM node:20-alpine AS deps
 
-# Instalar libc6-compat para compatibilidad
+# Instalar libc6-compat para compatibilidad (necesario en Alpine)
 RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Instalar pnpm globalmente
-RUN npm install -g pnpm
+# Copiar archivos de dependencias de npm
+# Usamos package-lock.json en lugar de pnpm-lock.yaml
+COPY package.json package-lock.json ./
 
-# Copiar archivos de dependencias
-COPY package.json pnpm-lock.yaml* ./
-
-# Instalar dependencias con pnpm
-RUN pnpm install --frozen-lockfile
+# Instalar dependencias con npm clean install (npm ci)
+# npm ci es más rápido y asegura que se usa el package-lock.json
+RUN npm ci
 
 # ========================================
 # STAGE 2: Builder
@@ -24,10 +24,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Instalar pnpm
-RUN npm install -g pnpm
-
-# Copiar dependencias instaladas
+# Copiar dependencias instaladas desde la etapa 'deps'
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copiar todo el código fuente
@@ -36,11 +33,11 @@ COPY . .
 # Configurar variables de entorno de build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# Placeholder para JWT_SECRET (solo para build, no se usa)
+# Placeholder para JWT_SECRET (solo para build)
 ENV JWT_SECRET=build-time-placeholder
 
-# Build de Next.js con pnpm
-RUN pnpm run build
+# Build de Next.js con npm
+RUN npm run build
 
 # ========================================
 # STAGE 3: Runner (Producción)
@@ -59,7 +56,7 @@ RUN adduser --system --uid 1001 nextjs
 # Copiar archivos públicos
 COPY --from=builder /app/public ./public
 
-# Copiar archivos de build
+# Copiar archivos de build y estáticos
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
