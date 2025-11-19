@@ -1,135 +1,97 @@
-name: code_room_frontend
+name: Deploy Frontend
+
 on:
-    push:
-        branches:
-            - production
+  push:
+    branches:
+      - production
+
 jobs:
-    build:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Comprobar y obtener codigo
-              uses: actions/checkout@v4
+  deploy:
+    runs-on: ubuntu-latest
 
-            - name: Crear carpeta en AWS
-              uses: appleboy/ssh-action@v1
-              with:
-                    host: ${{secrets.IP_SERVER}}
-                    username: ${{secrets.USERNAME}}
-                    key: ${{secrets.KEY}}
-                    port: ${{secrets.PORT}}
-                    script: |
-                            mkdir -p /home/ubuntu/code_room_frontend
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
 
-            - name: sincronizar proyecto en el servidor
-              uses: burnett01/rsync-deployments@7.0.2
-              with:
-                switches: "-avz --delete"
-                path: "./"
-                remote_host: ${{secrets.IP_SERVER}}
-                remote_user: ${{secrets.USERNAME}}
-                remote_path: "/home/ubuntu/code_room_frontend"
-                remote_key: ${{secrets.KEY}}
-                remote_port: ${{secrets.PORT}}
+      - name: Sincronizar archivos con rsync
+        uses: burnett01/rsync-deployments@6.1
+        with:
+          node_modules_mode: "delete"
+          ssh_key: ${{ secrets.KEY }}
+          source: ./
+          target: /home/ubuntu/code_room_frontend
+          remote_host: ${{ secrets.IP_SERVER }}
+          remote_user: ${{ secrets.USERNAME }}
+          rsync_path: /usr/bin/rsync # Para asegurar compatibilidad
 
-            - name: Instalar Docker y Docker Compose en servidor
-              uses: appleboy/ssh-action@v1
-              with:
-                host: ${{secrets.IP_SERVER}}
-                username: ${{secrets.USERNAME}}
-                key: ${{secrets.KEY}}
-                port: ${{secrets.PORT}}
-                script: |
-                    # Instalar Docker si no existe
-                    if ! command -v docker &> /dev/null; then
-                        echo "Instalando Docker..."
-                        sudo apt-get update
-                        sudo apt-get install -y ca-certificates curl
-                        sudo install -m 0755 -d /etc/apt/keyrings
-                        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-                        sudo chmod a+r /etc/apt/keyrings/docker.asc
-                        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-                        sudo apt-get update
-                        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-                        sudo usermod -aG docker ubuntu
-                    fi
-                    
-                    # Verificar instalación
-                    docker --version
-                    docker compose version
+      - name: Configurar variables de entorno del sistema
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{secrets.IP_SERVER}}
+          username: ${{secrets.USERNAME}}
+          key: ${{secrets.KEY}}
+          port: ${{secrets.PORT}}
+          script: |
+              echo "Configurando variables de entorno..."
+              
+              # 🚀 CAMBIO 1: Asegurarse de que el directorio exista y dar permisos
+              sudo mkdir -p /etc/environment.d
+              sudo chown $USER /etc/environment.d
+              
+              # Crear el archivo de configuración
+              sudo tee /etc/environment.d/code_room_frontend.conf > /dev/null <<EOF
+              # Code Room Frontend Environment Variables
+              export NEXT_PUBLIC_SUPABASE_URL="${{secrets.NEXT_PUBLIC_SUPABASE_URL}}"
+              export NEXT_PUBLIC_SUPABASE_ANON_KEY="${{secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY}}"
+              export JWT_SECRET="${{secrets.JWT_SECRET}}"
+              export DATABASE_URL="${{secrets.DATABASE_URL}}"
+              export NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="${{secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}}"
+              export NEXT_PUBLIC_PUSHER_APP_KEY="${{secrets.NEXT_PUBLIC_PUSHER_APP_KEY}}"
+              export NEXT_PUBLIC_PUSHER_APP_CLUSTER="${{secrets.NEXT_PUBLIC_PUSHER_APP_CLUSTER}}"
+              export PUSHER_APP_ID="${{secrets.PUSHER_APP_ID}}"
+              export PUSHER_APP_SECRET="${{secrets.PUSHER_APP_SECRET}}"
+              EOF
+              
+              # Cargar variables en la sesión actual
+              source /etc/environment.d/code_room_frontend.conf 2>/dev/null || true
+              
+              echo "✅ Variables de entorno configuradas correctamente"
 
-            - name: Configurar variables de entorno del sistema
-              uses: appleboy/ssh-action@v1
-              with:
-                host: ${{secrets.IP_SERVER}}
-                username: ${{secrets.USERNAME}}
-                key: ${{secrets.KEY}}
-                port: ${{secrets.PORT}}
-                script: |
-                    # Configurar variables de entorno del sistema
-                    echo "Configurando variables de entorno..."
-                    
-                    # Crear archivo de variables de entorno si no existe
-                    sudo tee /etc/environment.d/code_room_frontend.conf > /dev/null <<EOF
-                    # Code Room Frontend Environment Variables
-                    export JWT_SECRET="${{secrets.JWT_SECRET}}"
-                    export JWT_EXPIRES_IN="120h"
-                    export NEXT_PUBLIC_API_URL="${{secrets.NEXT_PUBLIC_API_URL}}"
-                    export NEXT_PUBLIC_AUTH_API_URL="${{secrets.NEXT_PUBLIC_AUTH_API_URL}}"
-                    export NEXT_PUBLIC_API_PROPERTIES_URL="${{secrets.NEXT_PUBLIC_API_PROPERTIES_URL}}"
-                    export NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="${{secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}}"
-                    export SUPABASE_URL="${{secrets.SUPABASE_URL}}"
-                    export SUPABASE_SERVICE_ROLE_KEY="${{secrets.SUPABASE_SERVICE_ROLE_KEY}}"
-                    export NEXT_PUBLIC_SUPABASE_URL="${{secrets.NEXT_PUBLIC_SUPABASE_URL}}"
-                    export NEXT_PUBLIC_SUPABASE_ANON_KEY="${{secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY}}"
-                    export PUSHER_APP_ID="${{secrets.PUSHER_APP_ID}}"
-                    export PUSHER_SECRET="${{secrets.PUSHER_SECRET}}"
-                    export PUSHER_KEY="${{secrets.PUSHER_KEY}}"
-                    export PUSHER_CLUSTER="${{secrets.PUSHER_CLUSTER}}"
-                    export NEXT_PUBLIC_PUSHER_KEY="${{secrets.NEXT_PUBLIC_PUSHER_KEY}}"
-                    export NEXT_PUBLIC_PUSHER_CLUSTER="${{secrets.NEXT_PUBLIC_PUSHER_CLUSTER}}"
-                    export DATABASE_URL="${{secrets.DATABASE_URL}}"
-                    EOF
-                    
-                    # Cargar variables en la sesión actual
-                    source /etc/environment.d/code_room_frontend.conf 2>/dev/null || true
-                    
-                    echo "✅ Variables de entorno configuradas cambio"
-
-            - name: Limpiar contenedores y construir imagen
-              uses: appleboy/ssh-action@v1
-              with:
-                host: ${{secrets.IP_SERVER}}
-                username: ${{secrets.USERNAME}}
-                key: ${{secrets.KEY}}
-                port: ${{secrets.PORT}}
-                # 🛑 ELIMINAMOS 'command_timeout: 30m' para dejar el valor por defecto
-                # (o para que corra sin límite si la acción lo permite, pero es más seguro)
-                script: |
-                    cd /home/ubuntu/code_room_frontend
-                    
-                    # Cargar variables de entorno del sistema
-                    source /etc/environment.d/code_room_frontend.conf 2>/dev/null || true
-                    
-                    # Detener contenedores antiguos
-                    docker compose down || true
-                    
-                    # Limpiar espacio en disco (mantenemos esto para liberar imágenes antiguas)
-                    echo "Limpiando imágenes antiguas..."
-                    docker system prune -af --volumes
-                    
-                    # ✅ CAMBIO CRÍTICO: Construir imagen permitiendo el uso del caché
-                    echo "Construyendo imagen Next.js (con cache)..."
-                    docker compose build
-                    
-                    echo "Levantando contenedor..."
-                    docker compose up -d
-                    
-                    # Esperar 15 segundos para que inicie
-                    sleep 15
-                    
-                    # Verificar estado
-                    echo "Estado del contenedor:"
-                    docker compose ps
-                    
-                    echo "Últimas líneas del log:"
-                    docker compose logs --tail=50
+      - name: Limpiar contenedores y construir imagen
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{secrets.IP_SERVER}}
+          username: ${{secrets.USERNAME}}
+          key: ${{secrets.KEY}}
+          port: ${{secrets.PORT}}
+          # 🛑 Eliminamos command_timeout para confiar en el caching de Docker.
+          script: |
+              cd /home/ubuntu/code_room_frontend
+              
+              # Cargar variables de entorno del sistema
+              source /etc/environment.d/code_room_frontend.conf 2>/dev/null || true
+              
+              # Detener contenedores antiguos
+              docker compose down || true
+              
+              # Limpiar espacio en disco (imágenes y caché sin usar)
+              echo "Limpiando imágenes antiguas..."
+              docker system prune -af --volumes
+              
+              # Construir imagen: Añadimos el argumento de build para npm ci
+              echo "Construyendo imagen Next.js (con cache y --legacy-peer-deps)..."
+              # 🚀 CAMBIO 2: Pasar el argumento al Dockerfile
+              docker compose build --build-arg NPM_CI_FLAGS="--legacy-peer-deps"
+              
+              echo "Levantando contenedor..."
+              docker compose up -d
+              
+              # Esperar 15 segundos para que inicie
+              sleep 15
+              
+              # Verificar estado
+              echo "Estado del contenedor:"
+              docker compose ps
+              
+              echo "Últimas líneas del log:"
+              docker compose logs --tail=50
