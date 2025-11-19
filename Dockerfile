@@ -4,9 +4,6 @@
 # Usamos node:20-alpine (ya incluye npm)
 FROM node:20-alpine AS deps
 
-# NUEVO: ARGUMENTO PARA PASAR FLAGS A NPM CI (ej: --legacy-peer-deps)
-ARG NPM_CI_FLAGS=""
-
 # Instalar libc6-compat para compatibilidad (necesario en Alpine)
 RUN apk add --no-cache libc6-compat
 
@@ -16,8 +13,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Instalar dependencias con npm clean install (npm ci)
-# Usa el argumento NPM_CI_FLAGS para resolver conflictos de peer dependencies
-RUN npm ci $NPM_CI_FLAGS
+# Usa --legacy-peer-deps para resolver conflictos de peer dependencies
+RUN npm ci --legacy-peer-deps
 
 # ========================================
 # STAGE 2: Builder
