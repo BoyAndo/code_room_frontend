@@ -119,7 +119,7 @@ jobs:
                     
                     # ✅ CAMBIO CRÍTICO: Construir imagen permitiendo el uso del caché
                     echo "Construyendo imagen Next.js (con cache)..."
-                    docker compose build # 👈 SIN --no-cache
+                    docker compose build
                     
                     echo "Levantando contenedor..."
                     docker compose up -d
