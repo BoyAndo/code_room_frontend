@@ -35,33 +35,35 @@ ENV NODE_ENV=production
 
 # Placeholders para build (valores reales se pasan en runtime)
 # Las variables NEXT_PUBLIC_* se embeben en el build, las demás son para runtime
-ENV JWT_SECRET=build-time-placeholder
+ENV JWT_SECRET="kJ8#mN9$pQ2@wE5!rT7&yU1*iO3^aS6%dF4+gH0-lK9=xC2@vB5!nM8%zQ7*wE3&"
 ENV JWT_EXPIRES_IN=120h
 
 # APIs públicas (se embeben en el build)
-ENV NEXT_PUBLIC_API_URL=http://placeholder:3001
-ENV NEXT_PUBLIC_AUTH_API_URL=http://placeholder:3001
-ENV NEXT_PUBLIC_API_PROPERTIES_URL=http://placeholder:3002/api
+ENV NEXT_PUBLIC_API_URL="http://13.216.81.127:3001"
+ENV NEXT_PUBLIC_AUTH_API_URL="http://13.216.81.127:3001"
+ENV NEXT_PUBLIC_API_PROPERTIES_URL="http://98.95.218.170:3002/api"
 
 # Google Maps (se embebe en el build)
-ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=placeholder-google-maps-key
+ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBQNL9rePdFP6H5sW-iPkLsjjGj_GPYNGg
 
 # Supabase
-ENV SUPABASE_URL=https://placeholder.supabase.co
-ENV SUPABASE_SERVICE_ROLE_KEY=placeholder-service-role-key
-ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key
+ENV SUPABASE_URL=https://ndpaoevxeuoxiobeszth.supabase.co
+ENV SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGFvZXZ4ZXVveGlvYmVzenRoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjU2MDA1NiwiZXhwIjoyMDc4MTM2MDU2fQ.H9SO6_zV>
+
+ENV NEXT_PUBLIC_SUPABASE_URL=https://ndpaoevxeuoxiobeszth.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGFvZXZ4ZXVveGlvYmVzenRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1NjAwNTYsImV4cCI6MjA3ODEzNjA1Nn0.g2GgIKYz0YJFwWhDb0nN3ZRUyosKlCDv4Ob4HyJC8EU
 
 # Pusher
-ENV PUSHER_APP_ID=placeholder-app-id
-ENV PUSHER_SECRET=placeholder-secret
-ENV PUSHER_KEY=placeholder-key
-ENV PUSHER_CLUSTER=placeholder-cluster
-ENV NEXT_PUBLIC_PUSHER_KEY=placeholder-key
-ENV NEXT_PUBLIC_PUSHER_CLUSTER=placeholder-cluster
+ENV PUSHER_APP_ID=2074834
+ENV PUSHER_SECRET=fa7b699720e34f55212d
+ENV PUSHER_KEY=77b62dbd0fef77f784c9
+ENV PUSHER_CLUSTER=mt1
+
+ENV NEXT_PUBLIC_PUSHER_KEY=77b62dbd0fef77f784c9
+ENV NEXT_PUBLIC_PUSHER_CLUSTER=mt1
 
 # Database
-ENV DATABASE_URL=mysql://placeholder:placeholder@placeholder:3306/placeholder
+ENV DATABASE_URL=mysql://root:howlin404@uroom.cbmkwgi8u37x.us-east-1.rds.amazonaws.com:3306/code_room
 
 # Build de Next.js con npm
 RUN npm run build
