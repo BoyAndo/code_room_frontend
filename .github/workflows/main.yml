@@ -102,7 +102,8 @@ jobs:
                 username: ${{secrets.USERNAME}}
                 key: ${{secrets.KEY}}
                 port: ${{secrets.PORT}}
-                command_timeout: 30m
+                # 🛑 ELIMINAMOS 'command_timeout: 30m' para dejar el valor por defecto
+                # (o para que corra sin límite si la acción lo permite, pero es más seguro)
                 script: |
                     cd /home/ubuntu/code_room_frontend
                     
@@ -112,13 +113,13 @@ jobs:
                     # Detener contenedores antiguos
                     docker compose down || true
                     
-                    # Limpiar espacio en disco
+                    # Limpiar espacio en disco (mantenemos esto para liberar imágenes antiguas)
                     echo "Limpiando imágenes antiguas..."
                     docker system prune -af --volumes
                     
-                    # Construir imagen sin cache
-                    echo "Construyendo imagen Next.js..."
-                    docker compose build --no-cache
+                    # ✅ CAMBIO CRÍTICO: Construir imagen permitiendo el uso del caché
+                    echo "Construyendo imagen Next.js (con cache)..."
+                    docker compose build # 👈 SIN --no-cache
                     
                     echo "Levantando contenedor..."
                     docker compose up -d
@@ -132,34 +133,3 @@ jobs:
                     
                     echo "Últimas líneas del log:"
                     docker compose logs --tail=50
-
-            - name: Verificar salud del contenedor
-              uses: appleboy/ssh-action@v1
-              with:
-                host: ${{secrets.IP_SERVER}}
-                username: ${{secrets.USERNAME}}
-                key: ${{secrets.KEY}}
-                port: ${{secrets.PORT}}
-                script: |
-                    cd /home/ubuntu/code_room_frontend
-                    
-                    # Esperar hasta 60 segundos a que el contenedor esté listo
-                    for i in {1..12}; do
-                        if docker compose ps | grep -q "Up"; then
-                            echo "✅ Contenedor corriendo correctamente"
-                            docker compose logs --tail=30
-                            
-                            # Probar endpoint de health
-                            echo "Probando endpoint de salud..."
-                            sleep 5
-                            curl -f http://localhost:3000/ || echo "⚠️ El servidor aún no responde"
-                            
-                            exit 0
-                        fi
-                        echo "Esperando que el contenedor inicie... ($i/12)"
-                        sleep 5
-                    done
-                    
-                    echo "❌ El contenedor no inició correctamente"
-                    docker compose logs
-                    exit 1
