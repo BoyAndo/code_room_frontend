@@ -1,6 +1,6 @@
 import { apiFetch } from "./api-client";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://13.216.81.127:3001";
 
 // Tipos para Region y Comuna
 export interface Region {
