@@ -10,18 +10,20 @@ const SUPABASE_URL =
 const SUPABASE_SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  throw new Error(
-    "Faltan variables de entorno de Supabase: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY (o equivalente)."
-  );
+// Función lazy para obtener el cliente de Supabase (solo en runtime)
+function getSupabaseService(): SupabaseClient {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    throw new Error(
+      "Faltan variables de entorno de Supabase: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY (o equivalente)."
+    );
+  }
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: { persistSession: false },
+  });
 }
 
-// Exportamos para que la ruta /landlord-chats pueda reutilizar este cliente.
-export const supabaseService: SupabaseClient = createClient(
-  SUPABASE_URL,
-  SUPABASE_SERVICE_KEY,
-  { auth: { persistSession: false } }
-);
+// Exportamos para compatibilidad con rutas existentes
+export const supabaseService = getSupabaseService();
 // --- FIN CLIENTE DE SUPABASE SERVICE ---
 
 // --- CONFIGURACIÓN DE PUSHER ---

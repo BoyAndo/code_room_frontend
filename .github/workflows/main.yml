@@ -68,7 +68,10 @@ jobs:
                     # Configurar variables de entorno del sistema
                     echo "Configurando variables de entorno..."
                     
-                    # Crear archivo de variables de entorno si no existe
+                    # Crear directorio si no existe
+                    sudo mkdir -p /etc/environment.d
+                    
+                    # Crear archivo de variables de entorno
                     sudo tee /etc/environment.d/code_room_frontend.conf > /dev/null <<EOF
                     # Code Room Frontend Environment Variables
                     export JWT_SECRET="${{secrets.JWT_SECRET}}"

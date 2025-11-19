@@ -32,8 +32,14 @@ COPY . .
 # Configurar variables de entorno de build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# Placeholder para JWT_SECRET (solo para build)
+# Placeholders para build (valores reales se pasan en runtime)
 ENV JWT_SECRET=build-time-placeholder
+ENV SUPABASE_URL=https://placeholder.supabase.co
+ENV SUPABASE_SERVICE_ROLE_KEY=placeholder-service-role-key
+ENV PUSHER_APP_ID=placeholder-app-id
+ENV PUSHER_SECRET=placeholder-secret
+ENV PUSHER_KEY=placeholder-key
+ENV PUSHER_CLUSTER=placeholder-cluster
 
 # Build de Next.js con npm
 RUN npm run build
