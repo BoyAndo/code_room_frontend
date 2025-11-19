@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: code-room-frontend
+    env_file:
+      - .env  # Lee variables del archivo .env en la instancia EC2
     ports:
       - "3000:3000"
     environment:

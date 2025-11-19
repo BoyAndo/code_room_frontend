@@ -32,14 +32,36 @@ COPY . .
 # Configurar variables de entorno de build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+
 # Placeholders para build (valores reales se pasan en runtime)
+# Las variables NEXT_PUBLIC_* se embeben en el build, las demás son para runtime
 ENV JWT_SECRET=build-time-placeholder
+ENV JWT_EXPIRES_IN=120h
+
+# APIs públicas (se embeben en el build)
+ENV NEXT_PUBLIC_API_URL=http://placeholder:3001
+ENV NEXT_PUBLIC_AUTH_API_URL=http://placeholder:3001
+ENV NEXT_PUBLIC_API_PROPERTIES_URL=http://placeholder:3002/api
+
+# Google Maps (se embebe en el build)
+ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=placeholder-google-maps-key
+
+# Supabase
 ENV SUPABASE_URL=https://placeholder.supabase.co
 ENV SUPABASE_SERVICE_ROLE_KEY=placeholder-service-role-key
+ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key
+
+# Pusher
 ENV PUSHER_APP_ID=placeholder-app-id
 ENV PUSHER_SECRET=placeholder-secret
 ENV PUSHER_KEY=placeholder-key
 ENV PUSHER_CLUSTER=placeholder-cluster
+ENV NEXT_PUBLIC_PUSHER_KEY=placeholder-key
+ENV NEXT_PUBLIC_PUSHER_CLUSTER=placeholder-cluster
+
+# Database
+ENV DATABASE_URL=mysql://placeholder:placeholder@placeholder:3306/placeholder
 
 # Build de Next.js con npm
 RUN npm run build
