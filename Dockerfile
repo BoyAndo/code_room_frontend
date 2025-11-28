@@ -39,9 +39,9 @@ ENV JWT_SECRET="kJ8#mN9$pQ2@wE5!rT7&yU1*iO3^aS6%dF4+gH0-lK9=xC2@vB5!nM8%zQ7*wE3&
 ENV JWT_EXPIRES_IN=120h
 
 # APIs públicas (se embeben en el build)
-ENV NEXT_PUBLIC_API_URL="http://13.216.81.127:3001"
-ENV NEXT_PUBLIC_AUTH_API_URL="http://13.216.81.127:3001"
-ENV NEXT_PUBLIC_API_PROPERTIES_URL="http://98.95.218.170:3002/api"
+ENV NEXT_PUBLIC_API_URL="http://44.217.55.228:3001"
+ENV NEXT_PUBLIC_AUTH_API_URL="http://44.217.55.228:3001"
+ENV NEXT_PUBLIC_API_PROPERTIES_URL="http://52.201.34.179:3002/api"
 
 # Google Maps (se embebe en el build)
 ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBQNL9rePdFP6H5sW-iPkLsjjGj_GPYNGg
@@ -63,7 +63,7 @@ ENV NEXT_PUBLIC_PUSHER_KEY=77b62dbd0fef77f784c9
 ENV NEXT_PUBLIC_PUSHER_CLUSTER=mt1
 
 # Database
-ENV DATABASE_URL=mysql://root:howlin404@uroom.cbmkwgi8u37x.us-east-1.rds.amazonaws.com:3306/code_room
+ENV DATABASE_URL=mysql://root:howlin404@uroom.cgt0cmaispf3.us-east-1.rds.amazonaws.com:3306/code_room
 
 # Build de Next.js con npm
 RUN npm run build
