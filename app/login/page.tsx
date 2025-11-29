@@ -31,7 +31,7 @@ export default function LoginPage() {
 
     try {
       console.log("Iniciando proceso de login...");
-      const response = await fetch("http://localhost:3001/auth/login", {
+      const response = await fetch("http://44.217.55.228:3001/auth/login", {
         method: "POST",
         body: JSON.stringify({
           email: formData.email,
