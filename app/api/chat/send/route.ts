@@ -10,6 +10,9 @@ const SUPABASE_URL =
 const SUPABASE_SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
+// Variable para cachear el cliente
+let _supabaseServiceInstance: SupabaseClient | null = null;
+
 // Función lazy para obtener el cliente de Supabase (solo en runtime)
 function getSupabaseService(): SupabaseClient {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -17,13 +20,23 @@ function getSupabaseService(): SupabaseClient {
       "Faltan variables de entorno de Supabase: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY (o equivalente)."
     );
   }
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-    auth: { persistSession: false },
-  });
+  
+  // Cachear la instancia para no recrearla en cada llamada
+  if (!_supabaseServiceInstance) {
+    _supabaseServiceInstance = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+      auth: { persistSession: false },
+    });
+  }
+  
+  return _supabaseServiceInstance;
 }
 
-// Exportamos para compatibilidad con rutas existentes
-export const supabaseService = getSupabaseService();
+// Exportamos un getter para compatibilidad con rutas existentes
+export const supabaseService = new Proxy({} as SupabaseClient, {
+  get(target, prop) {
+    return getSupabaseService()[prop as keyof SupabaseClient];
+  }
+});
 // --- FIN CLIENTE DE SUPABASE SERVICE ---
 
 // --- CONFIGURACIÓN DE PUSHER ---
