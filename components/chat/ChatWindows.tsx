@@ -23,6 +23,7 @@ interface ChatWindowProps {
   studentId: string; // ID del Estudiante en esta conversación
   studentName?: string;
   propertyName?: string;
+  onNewMessage?: () => void; // ✅ Callback para notificar al padre cuando llega un mensaje
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -30,6 +31,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   landlordId,
   propertyId,
   studentId,
+  onNewMessage, // ✅ Recibir callback del padre
 }) => {
   const [messages, setMessages] = useState<DBMessage[]>([]);
   const [inputContent, setInputContent] = useState("");
@@ -136,6 +138,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         }
         return prevMessages;
       });
+
+      // ✅ Notificar al componente padre que llegó un mensaje nuevo
+      if (onNewMessage) {
+        onNewMessage();
+      }
     });
 
     // Función de limpieza para desuscribirse de Pusher al desmontar

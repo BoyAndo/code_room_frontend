@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/AuthContext";
 // El archivo real se llama ChatWindows.tsx y exporta por defecto ChatWindow
 import ChatWindow from "@/components/chat/ChatWindows";
 import { MessageSquare } from "lucide-react";
-import { pusherClient } from "@/lib/pusher.client"; // ✅ Importar Pusher directamente
 
 // --- Interfaces y Tipos (Para consistencia de datos) ---
 
@@ -159,47 +158,6 @@ const LandlordChatsPage: React.FC = () => {
     }
   }, [currentUserId, fetchConversations]);
 
-  // ✅ NUEVO: Suscripción a Pusher para actualizar la lista cuando lleguen mensajes
-  useEffect(() => {
-    if (!currentUserId) return;
-    if (!pusherClient || typeof pusherClient.subscribe !== "function") {
-      console.warn("pusherClient no disponible");
-      return;
-    }
-
-    console.log("🔔 LandlordChatsPage: Suscribiéndose a Pusher para", conversations.length, "conversaciones");
-
-    // Suscribirse a todos los canales de conversaciones activas
-    const channels: any[] = [];
-    conversations.forEach((chat) => {
-      const channelParticipants = [chat.landlordId, chat.studentId]
-        .sort()
-        .join("-");
-      const channelName = `private-chat-prop-${chat.propertyId}-${channelParticipants}`;
-      
-      console.log("🔔 LandlordChatsPage: Suscribiéndose al canal:", channelName);
-      const channel = pusherClient.subscribe(channelName);
-      channel.bind("message-sent", (data: any) => {
-        console.log("🔔 LandlordChatsPage: Mensaje recibido en lista de chats!", data);
-        // Cuando llega un mensaje, refrescar la lista de conversaciones
-        fetchConversations();
-      });
-      channels.push(channel);
-    });
-
-    return () => {
-      console.log("🔔 LandlordChatsPage: Desuscribiéndose de Pusher");
-      // Cleanup: desuscribirse de todos los canales
-      conversations.forEach((chat) => {
-        const channelParticipants = [chat.landlordId, chat.studentId]
-          .sort()
-          .join("-");
-        const channelName = `private-chat-prop-${chat.propertyId}-${channelParticipants}`;
-        pusherClient.unsubscribe(channelName);
-      });
-    };
-  }, [currentUserId, conversations, fetchConversations]);
-
   // Limpiar el chat seleccionado si el usuario se desloggea
   useEffect(() => {
     if (!currentUserId) {
@@ -286,6 +244,10 @@ const LandlordChatsPage: React.FC = () => {
             landlordId={selectedChat.landlordId}
             propertyId={selectedChat.propertyId}
             studentId={selectedChat.studentId} // 💡 CRÍTICO: Pasamos el studentId
+            onNewMessage={() => {
+              console.log("🔔 LandlordChatsPage: Mensaje nuevo detectado, refrescando lista");
+              fetchConversations();
+            }}
           />
         ) : (
           <div className="flex flex-col justify-center items-center h-full text-neutral-500">
