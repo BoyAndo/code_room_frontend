@@ -98,5 +98,20 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# ✅ Variables de entorno para runtime (API routes)
+ENV SUPABASE_URL=https://ndpaoevxeuoxiobeszth.supabase.co
+ENV SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGFvZXZ4ZXVveGlvYmVzenRoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjU2MDA1NiwiZXhwIjoyMDc4MTM2MDU2fQ.H9SO6_zVPJ5bVc5lx_J3dXzDJdX8gyvDXBKfyhXFdnw
+ENV NEXT_PUBLIC_SUPABASE_URL=https://ndpaoevxeuoxiobeszth.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGFvZXZ4ZXVveGlvYmVzenRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1NjAwNTYsImV4cCI6MjA3ODEzNjA1Nn0.g2GgIKYz0YJFwWhDb0nN3ZRUyosKlCDv4Ob4HyJC8EU
+
+# Pusher (para runtime)
+ENV PUSHER_APP_ID=2074834
+ENV PUSHER_SECRET=fa7b699720e34f55212d
+ENV PUSHER_KEY=77b62dbd0fef77f784c9
+ENV PUSHER_CLUSTER=mt1
+
+# Database (para runtime)
+ENV DATABASE_URL=mysql://root:howlin404@uroom.cgt0cmaispf3.us-east-1.rds.amazonaws.com:3306/code_room
+
 # Comando de inicio
 CMD ["node", "server.js"]
