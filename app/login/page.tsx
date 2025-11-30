@@ -31,8 +31,10 @@ export default function LoginPage() {
 
     try {
       console.log("Iniciando proceso de login...");
-      const response = await fetch("http://44.217.55.228:3001/auth/login", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api_register.gabogrobier.dev";
+      const response = await fetch(`${apiUrl}/auth/login`, {
         method: "POST",
+        credentials: "include", // ✅ Importante para enviar cookies
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
