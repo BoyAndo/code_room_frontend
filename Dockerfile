@@ -39,9 +39,9 @@ ENV JWT_SECRET="kJ8#mN9$pQ2@wE5!rT7&yU1*iO3^aS6%dF4+gH0-lK9=xC2@vB5!nM8%zQ7*wE3&
 ENV JWT_EXPIRES_IN=120h
 
 # ✅ APIs públicas con HTTPS y subdominios (se embeben en el build)
-ENV NEXT_PUBLIC_API_URL="https://api_register.gabogrobier.dev"
-ENV NEXT_PUBLIC_AUTH_API_URL="https://api_register.gabogrobier.dev"
-ENV NEXT_PUBLIC_API_PROPERTIES_URL="https://uroom_api_properties.gabogrobier.dev/api"
+ENV NEXT_PUBLIC_API_URL="https://api-register.gabogrobier.dev"
+ENV NEXT_PUBLIC_AUTH_API_URL="https://api-register.gabogrobier.dev"
+ENV NEXT_PUBLIC_API_PROPERTIES_URL="https://uroom-api-properties.gabogrobier.dev/api"
 
 # Google Maps (se embebe en el build)
 ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBQNL9rePdFP6H5sW-iPkLsjjGj_GPYNGg
