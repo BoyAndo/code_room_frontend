@@ -38,21 +38,20 @@ export default function LoginPage() {
           password: formData.password,
         }),
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
       });
 
-      if (response.ok) {
-        console.log("Login exitoso en el servidor, actualizando estado...");
+      const data = await response.json();
+      if (response.ok && data.token) {
+        localStorage.setItem("authToken", data.token);
+        console.log("Token guardado en localStorage");
         const success = await login();
         if (success) {
           console.log("Estado de autenticación actualizado correctamente");
-          // La redirección se maneja en el AuthGuard
         } else {
           setError("Error al obtener los datos del usuario");
         }
       } else {
-        const errorData = await response.json();
-        setError(errorData.message || "Error en el login");
+        setError(data.message || "Error en el login");
       }
     } catch (error) {
       console.error("Error en login:", error);

@@ -13,7 +13,8 @@ export default function ProtectedRoute({
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && user) {
+      localStorage.removeItem("authToken");
       router.push("/login");
     }
   }, [isAuthenticated, router]);

@@ -53,9 +53,10 @@ export async function apiFetch(
   options: FetchOptions = {}
 ): Promise<Response> {
   // Asegurar que siempre se envíen las cookies
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
   const fetchOptions: RequestInit = {
     ...options,
-    credentials: options.credentials || 'include',
+    // No enviar credenciales/cookies
   };
 
   // Solo agregar headers de Content-Type y Accept si no es FormData
@@ -64,12 +65,14 @@ export async function apiFetch(
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       ...options.headers,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   } else {
     // Para FormData, solo agregar headers personalizados si existen
-    if (options.headers) {
-      fetchOptions.headers = options.headers;
-    }
+    fetchOptions.headers = {
+      ...options.headers,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
   }
 
   // Primera solicitud

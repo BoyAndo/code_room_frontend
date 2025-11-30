@@ -103,21 +103,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsLoading(true);
     try {
       console.log("Cerrando sesión...");
-      
-      // Primero limpiar el estado local inmediatamente
+      localStorage.removeItem("authToken");
       setUser(null);
-      
-      // Luego llamar al backend con skipRefresh para evitar loops
       await apiFetch(`${API_BASE_URL}/auth/logout`, {
         method: "POST",
-        skipRefresh: true // No intentar refrescar durante el logout
+        skipRefresh: true
       });
-      
       console.log("Sesión cerrada exitosamente");
     } catch (error) {
       console.error("Error en logout:", error);
-      // Asegurarse de limpiar el estado incluso si falla la llamada al backend
       setUser(null);
+      localStorage.removeItem("authToken");
     } finally {
       setIsLoading(false);
     }
