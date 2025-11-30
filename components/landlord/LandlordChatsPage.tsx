@@ -167,6 +167,8 @@ const LandlordChatsPage: React.FC = () => {
       return;
     }
 
+    console.log("🔔 LandlordChatsPage: Suscribiéndose a Pusher para", conversations.length, "conversaciones");
+
     // Suscribirse a todos los canales de conversaciones activas
     const channels: any[] = [];
     conversations.forEach((chat) => {
@@ -175,8 +177,10 @@ const LandlordChatsPage: React.FC = () => {
         .join("-");
       const channelName = `private-chat-prop-${chat.propertyId}-${channelParticipants}`;
       
+      console.log("🔔 LandlordChatsPage: Suscribiéndose al canal:", channelName);
       const channel = pusherClient.subscribe(channelName);
-      channel.bind("message-sent", () => {
+      channel.bind("message-sent", (data: any) => {
+        console.log("🔔 LandlordChatsPage: Mensaje recibido en lista de chats!", data);
         // Cuando llega un mensaje, refrescar la lista de conversaciones
         fetchConversations();
       });
@@ -184,6 +188,7 @@ const LandlordChatsPage: React.FC = () => {
     });
 
     return () => {
+      console.log("🔔 LandlordChatsPage: Desuscribiéndose de Pusher");
       // Cleanup: desuscribirse de todos los canales
       conversations.forEach((chat) => {
         const channelParticipants = [chat.landlordId, chat.studentId]

@@ -153,6 +153,8 @@ const StudentChatsPage: React.FC = () => {
       return;
     }
 
+    console.log("🔔 StudentChatsPage: Suscribiéndose a Pusher para", conversations.length, "conversaciones");
+
     // Suscribirse a todos los canales de conversaciones activas
     const channels: any[] = [];
     conversations.forEach((chat) => {
@@ -161,8 +163,10 @@ const StudentChatsPage: React.FC = () => {
         .join("-");
       const channelName = `private-chat-prop-${chat.propertyId}-${channelParticipants}`;
       
+      console.log("🔔 StudentChatsPage: Suscribiéndose al canal:", channelName);
       const channel = pusherClient.subscribe(channelName);
-      channel.bind("message-sent", () => {
+      channel.bind("message-sent", (data: any) => {
+        console.log("🔔 StudentChatsPage: Mensaje recibido en lista de chats!", data);
         // Cuando llega un mensaje, refrescar la lista de conversaciones
         fetchConversations();
       });
@@ -170,6 +174,7 @@ const StudentChatsPage: React.FC = () => {
     });
 
     return () => {
+      console.log("🔔 StudentChatsPage: Desuscribiéndose de Pusher");
       // Cleanup: desuscribirse de todos los canales
       conversations.forEach((chat) => {
         const channelParticipants = [chat.landlordId, chat.studentId]
