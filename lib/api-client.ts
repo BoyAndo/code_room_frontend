@@ -53,11 +53,11 @@ export async function apiFetch(
   url: string,
   options: FetchOptions = {}
 ): Promise<Response> {
-  // Asegurar que siempre se envíen las cookies
+  // ✅ IMPORTANTE: Siempre enviar cookies (authToken y refreshToken)
   const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
   const fetchOptions: RequestInit = {
     ...options,
-    // No enviar credenciales/cookies
+    credentials: 'include', // ✅ Enviar cookies en cada request
   };
 
   // Solo agregar headers de Content-Type y Accept si no es FormData
