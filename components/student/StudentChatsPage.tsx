@@ -5,6 +5,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import ChatWindow from "@/components/chat/ChatWindows";
 import { MessageSquare } from "lucide-react";
+import { pusherClient } from "@/lib/pusher.client"; // ✅ Importar Pusher directamente
 
 // --- Interfaces y Tipos ---
 
@@ -147,45 +148,37 @@ const StudentChatsPage: React.FC = () => {
   // ✅ NUEVO: Suscripción a Pusher para actualizar la lista cuando lleguen mensajes
   useEffect(() => {
     if (!currentUserId) return;
+    if (!pusherClient || typeof pusherClient.subscribe !== "function") {
+      console.warn("pusherClient no disponible");
+      return;
+    }
 
-    // Importar pusherClient dinámicamente
-    import("@/lib/pusher.client").then(({ pusherClient }) => {
-      if (!pusherClient || typeof pusherClient.subscribe !== "function") {
-        console.warn("pusherClient no disponible");
-        return;
-      }
-
-      // Suscribirse a un canal general de actualizaciones para este estudiante
-      const userChannel = pusherClient.subscribe(`private-user-${currentUserId}`);
+    // Suscribirse a todos los canales de conversaciones activas
+    const channels: any[] = [];
+    conversations.forEach((chat) => {
+      const channelParticipants = [chat.landlordId, chat.studentId]
+        .sort()
+        .join("-");
+      const channelName = `private-chat-prop-${chat.propertyId}-${channelParticipants}`;
       
-      // También escuchar en todos los canales de conversaciones activas
+      const channel = pusherClient.subscribe(channelName);
+      channel.bind("message-sent", () => {
+        // Cuando llega un mensaje, refrescar la lista de conversaciones
+        fetchConversations();
+      });
+      channels.push(channel);
+    });
+
+    return () => {
+      // Cleanup: desuscribirse de todos los canales
       conversations.forEach((chat) => {
         const channelParticipants = [chat.landlordId, chat.studentId]
           .sort()
           .join("-");
         const channelName = `private-chat-prop-${chat.propertyId}-${channelParticipants}`;
-        
-        const channel = pusherClient.subscribe(channelName);
-        channel.bind("message-sent", () => {
-          // Cuando llega un mensaje, refrescar la lista de conversaciones
-          fetchConversations();
-        });
+        pusherClient.unsubscribe(channelName);
       });
-
-      return () => {
-        // Cleanup: desuscribirse de todos los canales
-        userChannel.unbind_all();
-        pusherClient.unsubscribe(`private-user-${currentUserId}`);
-        
-        conversations.forEach((chat) => {
-          const channelParticipants = [chat.landlordId, chat.studentId]
-            .sort()
-            .join("-");
-          const channelName = `private-chat-prop-${chat.propertyId}-${channelParticipants}`;
-          pusherClient.unsubscribe(channelName);
-        });
-      };
-    });
+    };
   }, [currentUserId, conversations, fetchConversations]);
 
   useEffect(() => {
