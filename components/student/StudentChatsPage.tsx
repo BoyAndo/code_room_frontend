@@ -144,6 +144,50 @@ const StudentChatsPage: React.FC = () => {
     }
   }, [currentUserId, fetchConversations]);
 
+  // ✅ NUEVO: Suscripción a Pusher para actualizar la lista cuando lleguen mensajes
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    // Importar pusherClient dinámicamente
+    import("@/lib/pusher.client").then(({ pusherClient }) => {
+      if (!pusherClient || typeof pusherClient.subscribe !== "function") {
+        console.warn("pusherClient no disponible");
+        return;
+      }
+
+      // Suscribirse a un canal general de actualizaciones para este estudiante
+      const userChannel = pusherClient.subscribe(`private-user-${currentUserId}`);
+      
+      // También escuchar en todos los canales de conversaciones activas
+      conversations.forEach((chat) => {
+        const channelParticipants = [chat.landlordId, chat.studentId]
+          .sort()
+          .join("-");
+        const channelName = `private-chat-prop-${chat.propertyId}-${channelParticipants}`;
+        
+        const channel = pusherClient.subscribe(channelName);
+        channel.bind("message-sent", () => {
+          // Cuando llega un mensaje, refrescar la lista de conversaciones
+          fetchConversations();
+        });
+      });
+
+      return () => {
+        // Cleanup: desuscribirse de todos los canales
+        userChannel.unbind_all();
+        pusherClient.unsubscribe(`private-user-${currentUserId}`);
+        
+        conversations.forEach((chat) => {
+          const channelParticipants = [chat.landlordId, chat.studentId]
+            .sort()
+            .join("-");
+          const channelName = `private-chat-prop-${chat.propertyId}-${channelParticipants}`;
+          pusherClient.unsubscribe(channelName);
+        });
+      };
+    });
+  }, [currentUserId, conversations, fetchConversations]);
+
   useEffect(() => {
     if (!currentUserId) {
       setSelectedChat(null);
