@@ -1,8 +1,8 @@
-// app/api/data/resolve-names/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-// 🚨 Asegúrate de que esta URL apunte a tu microservicio Express
-const MICROSERVICE_DATA_API_URL = "http://localhost:3001/user";
+// ✅ Usar variable de entorno para la URL del microservicio
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const MICROSERVICE_DATA_API_URL = `${API_BASE_URL}/user`;
 
 // Tipo base para el mapeo de ID a Nombre
 type Item = { id: number | string; name: string };

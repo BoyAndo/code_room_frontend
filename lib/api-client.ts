@@ -19,7 +19,8 @@ async function refreshAccessToken(): Promise<boolean> {
   try {
     console.log('🔄 Intentando refrescar token...');
     
-    const response = await fetch('http://localhost:3001/auth/refresh', {
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include', // Envía las cookies (refreshToken)
       headers: {

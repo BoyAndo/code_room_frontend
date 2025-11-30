@@ -597,7 +597,8 @@ export default function SearchPage() {
       }
 
       const queryString = params.toString();
-      const url = `http://localhost:3002/api/properties/with-landlord${
+      const API_PROPERTIES_URL = process.env.NEXT_PUBLIC_API_PROPERTIES_URL || 'http://localhost:3002/api';
+      const url = `${API_PROPERTIES_URL}/properties/with-landlord${
         queryString ? `?${queryString}` : ""
       }`;
 
@@ -778,7 +779,8 @@ export default function SearchPage() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const response = await apiFetch("http://localhost:3001/auth/me", {
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        const response = await apiFetch(`${API_BASE_URL}/auth/me`, {
           method: "GET",
         });
 

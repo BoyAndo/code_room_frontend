@@ -239,8 +239,9 @@ export function usePropertyEdit(property: Property | null) {
         });
       }
 
+      const API_PROPERTIES_URL = process.env.NEXT_PUBLIC_API_PROPERTIES_URL || 'http://localhost:3002/api';
       const response = await apiFetch(
-        `http://localhost:3002/api/properties/${property.id}`,
+        `${API_PROPERTIES_URL}/properties/${property.id}`,
         {
           method: "PUT",
           body: submitData,

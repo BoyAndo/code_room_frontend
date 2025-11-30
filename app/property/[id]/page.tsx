@@ -352,7 +352,8 @@ export default function PropertyPage() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const response = await apiFetch("http://localhost:3001/auth/me", {
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        const response = await apiFetch(`${API_BASE_URL}/auth/me`, {
           method: "GET",
         });
 
