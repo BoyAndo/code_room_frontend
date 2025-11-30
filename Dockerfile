@@ -99,6 +99,11 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # ✅ Variables de entorno para runtime (API routes)
+# JWT (para validar tokens en API routes)
+ENV JWT_SECRET="kJ8#mN9$pQ2@wE5!rT7&yU1*iO3^aS6%dF4+gH0-lK9=xC2@vB5!nM8%zQ7*wE3&"
+ENV JWT_EXPIRES_IN=120h
+
+# Supabase
 ENV SUPABASE_URL=https://ndpaoevxeuoxiobeszth.supabase.co
 ENV SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGFvZXZ4ZXVveGlvYmVzenRoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjU2MDA1NiwiZXhwIjoyMDc4MTM2MDU2fQ.H9SO6_zVPJ5bVc5lx_J3dXzDJdX8gyvDXBKfyhXFdnw
 ENV NEXT_PUBLIC_SUPABASE_URL=https://ndpaoevxeuoxiobeszth.supabase.co
