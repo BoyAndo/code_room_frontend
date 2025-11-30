@@ -144,6 +144,23 @@ const StudentChatsPage: React.FC = () => {
     }
   }, [currentUserId, fetchConversations]);
 
+  // ✅ NUEVO: Polling para actualizar la lista cada 3 segundos
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    // Refrescar inmediatamente
+    fetchConversations();
+
+    // Configurar polling cada 0.5 segundos
+    const interval = setInterval(() => {
+      fetchConversations();
+    }, 500); // 0.5 segundos
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [currentUserId, fetchConversations]);
+
   useEffect(() => {
     if (!currentUserId) {
       setSelectedChat(null);
