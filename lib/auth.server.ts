@@ -26,10 +26,10 @@ export interface StudentPayload {
 export type UserPayload = LandlordPayload | StudentPayload;
 // ----------------------------------------------------
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
 // Validación solo en runtime (no en build time)
 function getJwtSecret(): string {
+  const JWT_SECRET = process.env.JWT_SECRET;  // ✅ Leer en runtime, no en import
+  
   if (!JWT_SECRET) {
     throw new Error(
       "JWT_SECRET no está definido en las variables de entorno de Next.js."
