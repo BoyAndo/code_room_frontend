@@ -70,6 +70,7 @@ const StudentChatsPage: React.FC = () => {
   const [conversations, setConversations] = useState<ChatListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedChat, setSelectedChat] = useState<ChatListItem | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0); // ✅ Contador para forzar re-render
 
   const fetchConversations = useCallback(async () => {
     if (!currentUserId) return;
@@ -112,6 +113,7 @@ const StudentChatsPage: React.FC = () => {
           });
 
           setConversations(finalChats);
+          setRefreshKey(prev => prev + 1); // ✅ Incrementar contador para forzar re-render
 
           setSelectedChat((prevSelectedChat) => {
             if (!prevSelectedChat) return null;
@@ -189,7 +191,7 @@ const StudentChatsPage: React.FC = () => {
           ) : (
             conversations.map((chat) => (
               <div
-                key={`${chat.propertyId}-${chat.landlordId}`}
+                key={`${chat.propertyId}-${chat.landlordId}-${refreshKey}`}
                 onClick={() => setSelectedChat(chat)}
                 className={`p-4 border-b cursor-pointer transition duration-150 ${
                   selectedChat?.propertyId === chat.propertyId &&
