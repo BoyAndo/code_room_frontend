@@ -1,7 +1,7 @@
 // components/student/StudentChatsPage.tsx
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { MessageSquare } from "lucide-react";
 import { pusherClient } from "@/lib/pusher.client";
@@ -154,6 +154,14 @@ const StudentChatsPage: React.FC = () => {
     }
   }, [currentUserId]);
 
+  // ✅ Ref para evitar re-suscripciones a Pusher
+  const fetchConversationsRef = useRef(fetchConversations);
+  
+  // Actualizar ref cuando cambia fetchConversations
+  useEffect(() => {
+    fetchConversationsRef.current = fetchConversations;
+  }, [fetchConversations]);
+
   // ✅ Cargar historial de mensajes (copiado de /search)
   const fetchChatHistory = useCallback(async (chat: ChatListItem) => {
     setLoadingMessages(true);
@@ -231,8 +239,8 @@ const StudentChatsPage: React.FC = () => {
         return [...prev, data];
       });
       
-      // ✅ ACTUALIZAR LA LISTA DE CONVERSACIONES
-      fetchConversations();
+      // ✅ ACTUALIZAR LA LISTA DE CONVERSACIONES usando ref
+      fetchConversationsRef.current();
     };
 
     channel.bind("message-sent", handleNewMessage);
@@ -242,7 +250,7 @@ const StudentChatsPage: React.FC = () => {
       channel.unbind("message-sent", handleNewMessage);
       pusherClient.unsubscribe(channelName);
     };
-  }, [selectedChat, currentUserId, fetchConversations]);
+  }, [selectedChat, currentUserId]); // ✅ Removido fetchConversations de dependencias
 
   // Cargar historial cuando se selecciona un chat
   useEffect(() => {
