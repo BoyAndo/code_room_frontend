@@ -2,14 +2,11 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-// 💡 ASUME que tienes tu hook de autenticación
 import { useAuth } from "@/contexts/AuthContext";
-// 💡 ASUME que tienes tu componente de chat
-// El archivo real se llama ChatWindows.tsx y exporta por defecto ChatWindow
-import ChatWindow from "@/components/chat/ChatWindows";
 import { MessageSquare } from "lucide-react";
+import { pusherClient } from "@/lib/pusher.client";
 
-// --- Interfaces y Tipos (Para consistencia de datos) ---
+// --- Interfaces y Tipos ---
 
 interface RawConversation {
   studentId: string;
@@ -22,13 +19,13 @@ interface RawConversation {
 interface ResolvedUser {
   id: string;
   name: string;
-  college?: string; // Nuevo: Nombre de la universidad
-  isVerified?: boolean; // Nuevo: Estado de verificación
+  college?: string;
+  isVerified?: boolean;
 }
 
 interface ResolvedProperty {
   id: string;
-  name: string; // Título de la propiedad
+  name: string;
 }
 
 interface ResolvedData {
@@ -43,13 +40,23 @@ interface ChatListItem extends RawConversation {
   isVerified?: boolean;
 }
 
-// 💡 Función de utilidad para resolver nombres a través del proxy de Next.js
+interface DBMessage {
+  id: number;
+  sender_id: number;
+  recipient_id: number;
+  property_id: number;
+  content: string;
+  created_at: string;
+  sender_role: string;
+  recipient_role: string;
+}
+
+// Función de utilidad para resolver nombres
 const resolveNames = async (
   propertyIds: string[],
   studentIds: string[]
 ): Promise<ResolvedData> => {
   try {
-    // Llama al endpoint POST corregido
     const response = await fetch("/api/data/resolve-names", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -71,18 +78,21 @@ const resolveNames = async (
 
 const LandlordChatsPage: React.FC = () => {
   const { user } = useAuth();
-  const currentUserId = user?.id; // ID del Arrendador loggeado (de Supabase)
+  const currentUserId = user?.id;
 
   const [conversations, setConversations] = useState<ChatListItem[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0); // ✅ Contador para forzar re-render
   const [loading, setLoading] = useState(true);
   const [selectedChat, setSelectedChat] = useState<ChatListItem | null>(null);
+  
+  // ✅ Estados para el chat
+  const [messages, setMessages] = useState<DBMessage[]>([]);
+  const [inputContent, setInputContent] = useState("");
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
   const fetchConversations = useCallback(async () => {
     if (!currentUserId) return;
 
     try {
-      // 1. Fetch de IDs de conversaciones (Llama al endpoint GET corregido)
       const response = await fetch(
         `/api/chat/landlord-chats?landlordId=${encodeURIComponent(
           String(currentUserId)
@@ -94,7 +104,6 @@ const LandlordChatsPage: React.FC = () => {
         const initialConversations: RawConversation[] = data.conversations;
 
         if (initialConversations.length > 0) {
-          // 2. Extraer IDs únicos
           const propertyIds = Array.from(
             new Set(initialConversations.map((c) => c.propertyId))
           );
@@ -102,12 +111,9 @@ const LandlordChatsPage: React.FC = () => {
             new Set(initialConversations.map((c) => c.studentId))
           );
 
-          // 3. Resolver Nombres, Universidad y Verificación (Llama al backend 3001 vía proxy)
           const resolvedData = await resolveNames(propertyIds, studentIds);
 
-          // 4. Mapear y combinar los datos
           const finalChats = initialConversations.map((chat) => {
-            // Buscar la información resuelta del estudiante y propiedad
             const student = resolvedData.users.find(
               (u) => String(u.id) === chat.studentId
             );
@@ -119,16 +125,13 @@ const LandlordChatsPage: React.FC = () => {
               ...chat,
               studentName: student?.name || `Estudiante ID ${chat.studentId}`,
               propertyName: property?.name || `Propiedad ID ${chat.propertyId}`,
-              college: student?.college, // Incluimos la universidad
-              isVerified: student?.isVerified ?? false, // Incluimos el estado de verificación
+              college: student?.college,
+              isVerified: student?.isVerified ?? false,
             } as ChatListItem;
           });
 
           setConversations(finalChats);
-          setRefreshKey(prev => prev + 1); // ✅ Incrementar contador para forzar re-render
 
-          // Si había un chat seleccionado, actualizar sus datos con los resueltos
-          // Usamos la forma funcional para evitar depender de selectedChat en el useCallback
           setSelectedChat((prevSelectedChat) => {
             if (!prevSelectedChat) return null;
             const updatedChat = finalChats.find(
@@ -154,20 +157,109 @@ const LandlordChatsPage: React.FC = () => {
     }
   }, [currentUserId]);
 
+  // ✅ Cargar historial de mensajes
+  const fetchChatHistory = useCallback(async (chat: ChatListItem) => {
+    setLoadingMessages(true);
+    try {
+      const response = await fetch(
+        `/api/chat/history?landlordId=${chat.landlordId}&propertyId=${chat.propertyId}&studentId=${chat.studentId}`,
+        { credentials: "include" }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        const messagesArray: DBMessage[] = Array.isArray(result.messages)
+          ? result.messages
+          : [];
+        setMessages(messagesArray);
+      } else {
+        console.error("Fallo al obtener historial");
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Error de red al obtener historial:", error);
+      setMessages([]);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
+
+  // ✅ Enviar mensaje
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedContent = inputContent.trim();
+    if (!trimmedContent || !selectedChat) return;
+
+    try {
+      await fetch(`/api/chat/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientId: selectedChat.studentId,
+          propertyId: selectedChat.propertyId,
+          content: trimmedContent,
+        }),
+        credentials: "include",
+      });
+      setInputContent("");
+    } catch (error) {
+      console.error("Fallo al enviar mensaje:", error);
+    }
+  };
+
   useEffect(() => {
     if (currentUserId) {
       fetchConversations();
     }
   }, [currentUserId, fetchConversations]);
 
-  // Limpiar el chat seleccionado si el usuario se desloggea
+  // ✅ Suscripción a Pusher - CON ORDENAMIENTO NUMÉRICO
+  useEffect(() => {
+    if (!selectedChat || !currentUserId || !pusherClient) return;
+
+    const channelParticipants = [Number(selectedChat.landlordId), Number(selectedChat.studentId)]
+      .sort((a, b) => a - b)
+      .join("-");
+    const channelName = `private-chat-prop-${selectedChat.propertyId}-${channelParticipants}`;
+
+    console.log("🔔 Suscribiéndose al canal:", channelName);
+    const channel = pusherClient.subscribe(channelName);
+
+    const handleNewMessage = (data: DBMessage) => {
+      console.log("📨 Nuevo mensaje recibido:", data);
+      setMessages((prev) => {
+        if (prev.some((msg) => msg.id === data.id)) {
+          return prev;
+        }
+        return [...prev, data];
+      });
+      
+      // ✅ ACTUALIZAR LA LISTA DE CONVERSACIONES
+      fetchConversations();
+    };
+
+    channel.bind("message-sent", handleNewMessage);
+
+    return () => {
+      console.log("🔌 Desuscribiéndose del canal:", channelName);
+      channel.unbind("message-sent", handleNewMessage);
+      pusherClient.unsubscribe(channelName);
+    };
+  }, [selectedChat, currentUserId, fetchConversations]);
+
+  // Cargar historial cuando se selecciona un chat
+  useEffect(() => {
+    if (selectedChat) {
+      fetchChatHistory(selectedChat);
+    }
+  }, [selectedChat, fetchChatHistory]);
+
   useEffect(() => {
     if (!currentUserId) {
       setSelectedChat(null);
     }
   }, [currentUserId]);
 
-  // Estilos de carga y no autenticado
   if (!currentUserId) {
     return (
       <div className="p-8 text-center text-red-500">
@@ -207,23 +299,21 @@ const LandlordChatsPage: React.FC = () => {
           ) : (
             conversations.map((chat) => (
               <div
-                key={`${chat.propertyId}-${chat.studentId}-${refreshKey}`}
+                key={`${chat.propertyId}-${chat.studentId}`}
                 onClick={() => setSelectedChat(chat)}
                 className={`p-4 border-b cursor-pointer transition duration-150 ${
                   selectedChat?.propertyId === chat.propertyId &&
                   selectedChat?.studentId === chat.studentId
-                    ? "bg-sage/10 border-l-4 border-sage" // Chat seleccionado
-                    : "hover:bg-neutral-50" // Chat no seleccionado
+                    ? "bg-sage/10 border-l-4 border-sage"
+                    : "hover:bg-neutral-50"
                 }`}
               >
-                {/* ✅ AHORA USAMOS LOS NOMBRES Y DATOS REALES DE MYSQL/PRISMA */}
                 <p className="font-semibold text-neutral-800 truncate">
                   Con: {chat.studentName}
                 </p>
                 <p className="text-sm text-neutral-600 truncate mt-0.5">
                   Propiedad: {chat.propertyName}
                 </p>
-                {/* Mostramos la universidad */}
                 {chat.college && (
                   <p className="text-xs text-blue-600/80 truncate mt-0.5">
                     Estudia en: {chat.college}
@@ -241,16 +331,69 @@ const LandlordChatsPage: React.FC = () => {
       {/* Columna Derecha: Ventana de Chat */}
       <div className="w-2/3 p-4">
         {selectedChat ? (
-          <ChatWindow
-            currentUserId={currentUserId}
-            landlordId={selectedChat.landlordId}
-            propertyId={selectedChat.propertyId}
-            studentId={selectedChat.studentId} // 💡 CRÍTICO: Pasamos el studentId
-            onNewMessage={() => {
-              // Refrescar la lista cuando llega un mensaje nuevo
-              fetchConversations();
-            }}
-          />
+          <div className="flex flex-col h-full bg-white border rounded-lg shadow-lg">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {loadingMessages ? (
+                <div className="flex justify-center items-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sage"></div>
+                  <p className="ml-3 text-neutral-600">Cargando mensajes...</p>
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex flex-col justify-center items-center h-full text-neutral-500">
+                  <MessageSquare className="h-10 w-10 mb-2" />
+                  <p>¡Inicia la conversación!</p>
+                </div>
+              ) : (
+                messages.map((msg) => {
+                  const isOwnMessage = msg.sender_role === "LANDLORD";
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex ${
+                        isOwnMessage ? "justify-end" : "justify-start"
+                      }`}
+                    >
+                      <div
+                        className={`p-3 max-w-xs rounded-lg shadow-md ${
+                          isOwnMessage
+                            ? "bg-sage text-white"
+                            : "bg-gray-200 text-neutral-800"
+                        }`}
+                      >
+                        <p className="text-sm">{msg.content}</p>
+                        <span className="text-xs opacity-75 mt-1 block text-right">
+                          {new Date(msg.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <form onSubmit={handleSendMessage} className="p-4 border-t bg-gray-50">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={inputContent}
+                  onChange={(e) => setInputContent(e.target.value)}
+                  placeholder="Escribe un mensaje..."
+                  className="flex-1 border border-gray-300 p-3 rounded-full focus:ring-sage focus:border-sage"
+                  disabled={loadingMessages}
+                />
+                <button
+                  type="submit"
+                  className="bg-sage text-white p-3 rounded-full hover:bg-sage/90 disabled:bg-neutral-400 transition duration-150"
+                  disabled={loadingMessages || !inputContent.trim()}
+                >
+                  Enviar
+                </button>
+              </div>
+            </form>
+          </div>
         ) : (
           <div className="flex flex-col justify-center items-center h-full text-neutral-500">
             <MessageSquare className="h-12 w-12 mb-4" />
