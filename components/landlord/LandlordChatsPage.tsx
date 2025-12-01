@@ -74,6 +74,7 @@ const LandlordChatsPage: React.FC = () => {
   const currentUserId = user?.id; // ID del Arrendador loggeado (de Supabase)
 
   const [conversations, setConversations] = useState<ChatListItem[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0); // ✅ Contador para forzar re-render
   const [loading, setLoading] = useState(true);
   const [selectedChat, setSelectedChat] = useState<ChatListItem | null>(null);
 
@@ -124,6 +125,7 @@ const LandlordChatsPage: React.FC = () => {
           });
 
           setConversations(finalChats);
+          setRefreshKey(prev => prev + 1); // ✅ Incrementar contador para forzar re-render
 
           // Si había un chat seleccionado, actualizar sus datos con los resueltos
           // Usamos la forma funcional para evitar depender de selectedChat en el useCallback
@@ -205,7 +207,7 @@ const LandlordChatsPage: React.FC = () => {
           ) : (
             conversations.map((chat) => (
               <div
-                key={`${chat.propertyId}-${chat.studentId}`}
+                key={`${chat.propertyId}-${chat.studentId}-${refreshKey}`}
                 onClick={() => setSelectedChat(chat)}
                 className={`p-4 border-b cursor-pointer transition duration-150 ${
                   selectedChat?.propertyId === chat.propertyId &&
