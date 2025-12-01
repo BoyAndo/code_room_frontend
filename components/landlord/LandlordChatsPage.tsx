@@ -244,6 +244,10 @@ const LandlordChatsPage: React.FC = () => {
             landlordId={selectedChat.landlordId}
             propertyId={selectedChat.propertyId}
             studentId={selectedChat.studentId} // 💡 CRÍTICO: Pasamos el studentId
+            onNewMessage={() => {
+              // Refrescar la lista cuando llega un mensaje nuevo
+              fetchConversations();
+            }}
           />
         ) : (
           <div className="flex flex-col justify-center items-center h-full text-neutral-500">
