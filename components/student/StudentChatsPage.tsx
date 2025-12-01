@@ -214,8 +214,8 @@ const StudentChatsPage: React.FC = () => {
   useEffect(() => {
     if (!selectedChat || !currentUserId || !pusherClient) return;
 
-    const channelParticipants = [selectedChat.landlordId, selectedChat.studentId]
-      .sort()
+    const channelParticipants = [Number(selectedChat.landlordId), Number(selectedChat.studentId)]
+      .sort((a, b) => a - b)
       .join("-");
     const channelName = `private-chat-prop-${selectedChat.propertyId}-${channelParticipants}`;
 
