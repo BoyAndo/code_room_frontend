@@ -222,7 +222,7 @@ const LandlordChatsPage: React.FC = () => {
           ) : (
             conversations.map((chat) => (
               <div
-                key={`${chat.propertyId}-${chat.studentId}`}
+                key={`${chat.propertyId}-${chat.studentId}-${chat.lastMessageTime}`}
                 onClick={() => setSelectedChat(chat)}
                 className={`p-4 border-b cursor-pointer transition duration-150 ${
                   selectedChat?.propertyId === chat.propertyId &&
