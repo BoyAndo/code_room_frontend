@@ -144,23 +144,6 @@ const StudentChatsPage: React.FC = () => {
     }
   }, [currentUserId, fetchConversations]);
 
-  // ✅ NUEVO: Polling para actualizar la lista cada 3 segundos
-  useEffect(() => {
-    if (!currentUserId) return;
-
-    // Refrescar inmediatamente
-    fetchConversations();
-
-    // Configurar polling cada 0.5 segundos
-    const interval = setInterval(() => {
-      fetchConversations();
-    }, 500); // 0.5 segundos
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [currentUserId, fetchConversations]);
-
   useEffect(() => {
     if (!currentUserId) {
       setSelectedChat(null);
@@ -206,7 +189,7 @@ const StudentChatsPage: React.FC = () => {
           ) : (
             conversations.map((chat) => (
               <div
-                key={`${chat.propertyId}-${chat.landlordId}-${chat.lastMessageTime}`}
+                key={`${chat.propertyId}-${chat.landlordId}`}
                 onClick={() => setSelectedChat(chat)}
                 className={`p-4 border-b cursor-pointer transition duration-150 ${
                   selectedChat?.propertyId === chat.propertyId &&
@@ -238,10 +221,6 @@ const StudentChatsPage: React.FC = () => {
             landlordId={selectedChat.landlordId}
             propertyId={selectedChat.propertyId}
             studentId={selectedChat.studentId}
-            onNewMessage={() => {
-              console.log("🔔 StudentChatsPage: Mensaje nuevo detectado, refrescando lista");
-              fetchConversations();
-            }}
           />
         ) : (
           <div className="flex flex-col justify-center items-center h-full text-neutral-500">
