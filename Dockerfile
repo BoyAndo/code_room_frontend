@@ -33,11 +33,6 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# Placeholders para build (valores reales se pasan en runtime)
-# Las variables NEXT_PUBLIC_* se embeben en el build, las demás son para runtime
-ENV JWT_SECRET="kJ8#mN9$pQ2@wE5!rT7&yU1*iO3^aS6%dF4+gH0-lK9=xC2@vB5!nM8%zQ7*wE3&"
-ENV JWT_EXPIRES_IN=120h
-
 # ✅ APIs públicas con HTTPS y subdominios (se embeben en el build)
 ENV NEXT_PUBLIC_API_URL="https://api-register.gabogrobier.dev"
 ENV NEXT_PUBLIC_AUTH_API_URL="https://api-register.gabogrobier.dev"
@@ -89,23 +84,6 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Crear script de inicio ANTES de cambiar de usuario
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'export JWT_SECRET="kJ8#mN9$pQ2@wE5!rT7&yU1*iO3^aS6%dF4+gH0-lK9=xC2@vB5!nM8%zQ7*wE3&"' >> /app/start.sh && \
-    echo 'export JWT_EXPIRES_IN=120h' >> /app/start.sh && \
-    echo 'export SUPABASE_URL=https://ndpaoevxeuoxiobeszth.supabase.co' >> /app/start.sh && \
-    echo 'export SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGFvZXZ4ZXVveGlvYmVzenRoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjU2MDA1NiwiZXhwIjoyMDc4MTM2MDU2fQ.H9SO6_zVPJ5bVc5lx_J3dXzDJdX8gyvDXBKfyhXFdnw' >> /app/start.sh && \
-    echo 'export NEXT_PUBLIC_SUPABASE_URL=https://ndpaoevxeuoxiobeszth.supabase.co' >> /app/start.sh && \
-    echo 'export NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGFvZXZ4ZXVveGlvYmVzenRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1NjAwNTYsImV4cCI6MjA3ODEzNjA1Nn0.g2GgIKYz0YJFwWhDb0nN3ZRUyosKlCDv4Ob4HyJC8EU' >> /app/start.sh && \
-    echo 'export PUSHER_APP_ID=2074834' >> /app/start.sh && \
-    echo 'export PUSHER_SECRET=fa7b699720e34f55212d' >> /app/start.sh && \
-    echo 'export PUSHER_KEY=77b62dbd0fef77f784c9' >> /app/start.sh && \
-    echo 'export PUSHER_CLUSTER=mt1' >> /app/start.sh && \
-    echo 'export DATABASE_URL=mysql://root:howlin404@uroom.cgt0cmaispf3.us-east-1.rds.amazonaws.com:3306/code_room' >> /app/start.sh && \
-    echo 'exec node server.js' >> /app/start.sh && \
-    chmod +x /app/start.sh && \
-    chown nextjs:nodejs /app/start.sh
-
 # Cambiar a usuario no-root
 USER nextjs
 
@@ -115,25 +93,22 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# ✅ Variables de entorno para runtime (API routes)
-# JWT (para validar tokens en API routes)
+# Variables de entorno para runtime (opcional mantener aquí por ahora)
 ENV JWT_SECRET="kJ8#mN9$pQ2@wE5!rT7&yU1*iO3^aS6%dF4+gH0-lK9=xC2@vB5!nM8%zQ7*wE3&"
 ENV JWT_EXPIRES_IN=120h
 
-# Supabase
 ENV SUPABASE_URL=https://ndpaoevxeuoxiobeszth.supabase.co
-ENV SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGFvZXZ4ZXVveGlvYmVzenRoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjU2MDA1NiwiZXhwIjoyMDc4MTM2MDU2fQ.H9SO6_zVPJ5bVc5lx_J3dXzDJdX8gyvDXBKfyhXFdnw
-ENV NEXT_PUBLIC_SUPABASE_URL=https://ndpaoevxeuoxiobeszth.supabase.co
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGFvZXZ4ZXVveGlvYmVzenRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1NjAwNTYsImV4cCI6MjA3ODEzNjA1Nn0.g2GgIKYz0YJFwWhDb0nN3ZRUyosKlCDv4Ob4HyJC8EU
+ENV SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-# Pusher (para runtime)
+ENV NEXT_PUBLIC_SUPABASE_URL=https://ndpaoevxeuoxiobeszth.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
 ENV PUSHER_APP_ID=2074834
 ENV PUSHER_SECRET=fa7b699720e34f55212d
 ENV PUSHER_KEY=77b62dbd0fef77f784c9
 ENV PUSHER_CLUSTER=mt1
 
-# Database (para runtime)
 ENV DATABASE_URL=mysql://root:howlin404@uroom.cgt0cmaispf3.us-east-1.rds.amazonaws.com:3306/code_room
 
-# Comando de inicio usando el script
-CMD ["/app/start.sh"]
+# Comando de inicio directo (sin start.sh)
+CMD ["node", "server.js"]
