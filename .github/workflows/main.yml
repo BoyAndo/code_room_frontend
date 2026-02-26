@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Comprobar y obtener codigo
+      - name: Comprobar y obtener codigo de repo
         uses: actions/checkout@v4
 
       - name: Crear carpeta en AWS
